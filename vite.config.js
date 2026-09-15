@@ -4,5 +4,5 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/planner.io/'
+  base: process.env.CAPACITOR_BUILD ? '/' : '/planner.io/'
 })
