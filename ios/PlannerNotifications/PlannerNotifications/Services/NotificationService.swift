@@ -57,13 +57,34 @@ final class NotificationService {
                 guard secondsUntilNotification > 0 else {
                     continue
                 }
+                
+                let flavorTexts = [
+                    "Lock in.",
+                    "You got this.",
+                    "Don't forget about this one.",
+                    "Future you will thank you.",
+                    "It's almost time.",
+                    "Consider this your warning.",
+                    "Clock's ticking.",
+                    "Your calendar has spoken.",
+                    "Go do the thing.",
+                    "No excuses.",
+                    "Get ready.",
+                    "You probably shouldn't ignore this.",
+                    "Meow.",
+                    ">:)"
+                ]
+
+                let flavorText = flavorTexts.randomElement()!
 
                 let content = UNMutableNotificationContent()
-
+                
                 content.title = "Planner.io"
                 content.body =
-                    "\(occurrence.event.name) \(label)"
-                content.sound = .default
+                    "\(occurrence.event.name) \(label)!\n\(flavorText)"
+                content.sound = UNNotificationSound(
+                    named: UNNotificationSoundName("notification.wav")
+                )
 
                 let url =
                     "https://chromaly.github.io/planner.io/?eventId=\(occurrence.event.id)"

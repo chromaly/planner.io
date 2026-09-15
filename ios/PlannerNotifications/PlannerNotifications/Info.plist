@@ -15,5 +15,12 @@
 			</array>
 		</dict>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Sora-Bold.ttf</string>
+		<string>Sora-Medium.ttf</string>
+		<string>Sora-Regular.ttf</string>
+		<string>Sora-SemiBold.ttf</string>
+	</array>
 </dict>
 </plist>
