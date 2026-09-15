@@ -398,133 +398,55 @@ function App() {
 
   return(    
     <div className={"bg-bg text-text font-sans"}>
-  <div className="relative pt-[calc(env(safe-area-inset-top)+1rem)]">
-    <h1 className="text-2xl font-bold text-text text-center">planner.io</h1>
-    <h1 className="text-lg font-medium text-text text-center">
-      The planner for all your needs.
-    </h1>
+      <div className="relative pt-4 pt-[calc(env(safe-area-inset-top)+1rem)]">
+        <h1 className="text-2xl font-bold text-text text-center">planner.io</h1>
+        <h1 className="text-lg font-medium text-text text-center">The planner for all your needs.</h1>
 
-    <div className="absolute top-[calc(env(safe-area-inset-top)+1rem)] right-4">
-      {user ? (
-        <UserMenu
-          user={user}
-          onSignOut={handleSignOut}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-        />
-      ) : (
-        <button
-          onClick={() => setIsSignInModalOpen(true)}
-          className="bg-accent-2 text-white px-3 py-1.5 rounded-lg text-sm transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
-        >
-          Sign In
-        </button>
-      )}
-    </div>
-  </div>
-
-  <div className="relative px-4">
-
-    {/* Reminders */}
-    <div className="w-full mb-6 lg:absolute lg:left-0 lg:top-0 lg:w-64 lg:mb-0">
-      <RemindersTab
-        events={events}
-        onEventClick={(event) => setSelectedEvent(event)}
-      />
-    </div>
-
-    {/* Calendar */}
-    <div className="w-full flex justify-center">
-      <div className="w-full max-w-[900px]">
-
-        <div className="flex items-center justify-between mb-3">
-          <button
-            className="bg-accent-2 hover:bg-accent-2/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
-            onClick={() => setEventModal(true)}
-          >
-            Add Event
-          </button>
-
-          {viewMode == "week" ? (
-            <button
-              className="bg-accent-2 hover:bg-accent-2/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 hover:scale-110 transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:-rotate-2 active:scale-90 active:rotate-1"
-              onClick={() => setViewMode("month")}
-            >
-              Monthly View
-            </button>
+         <div className="absolute top-[calc(env(safe-area-inset-top)+1rem)] right-4">
+          {user ? (
+            <UserMenu user={user} onSignOut={handleSignOut} onOpenSettings={() => setIsSettingsOpen(true)} />
           ) : (
-            <button
-              className="bg-accent-2 hover:bg-accent-2/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 hover:scale-110 transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:-rotate-2 active:scale-90 active:rotate-1"
-              onClick={() => setViewMode("week")}
-            >
-              Weekly View
+            <button onClick={() => setIsSignInModalOpen(true)} className="bg-accent-2 text-white px-3 py-1.5 rounded-lg text-sm transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1">
+              Sign In
             </button>
           )}
         </div>
+      </div>  
+  <div className="flex flex-col flex-row gap-6 px-4">
 
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={viewMode === "week" ? previousWeek : previousMonth}
-            className="bg-accent-1 hover:bg-accent-1/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
-          >
-            ← Prev
-          </button>
-
-          <span className="text-sm font-medium">
-            {viewMode === "week"
-              ? `${weekDays[0].toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric'
-                })} – ${weekDays[6].toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric'
-                })}`
-              : selectedMonth.toLocaleDateString('en-US', {
-                  month: 'long',
-                  year: 'numeric'
-                })}
-          </span>
-
-          <button
-            onClick={viewMode === "week" ? nextWeek : nextMonth}
-            className="bg-accent-1 hover:bg-accent-1/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
-          >
-            Next →
-          </button>
-        </div>
-
-        {viewMode == "week" ? (
-          <WeekGrid
-            events={events}
-            weekDays={weekDays}
-            hours={hours}
-            onEventClick={(event) => setSelectedEvent(event)}
-          />
-        ) : (
-          <MonthGrid
-            selectedMonth={selectedMonth}
-            events={events}
-            onDayClick={(day) => {
-              setSelectedDate(day);
-              setViewMode("week");
-            }}
-          />
-        )}
-
+      <div className="w-full md:w-64 shrink-0">
+        <RemindersTab events={events} onEventClick={(event) => setSelectedEvent(event)} />
       </div>
-    </div>
 
-    <AiAssistant
-      events={events}
-      handleAIEvent={handleAIEvent}
-      handleAIEdit={handleAIEdit}
-      findAvailableTimes={findAvailableTimes}
-      isOpen={aiOpen}
-      setIsOpen={setAiOpen}
-      pendingEvent={aiConflictEvent}
-      aiConflictModal={aiConflictModal}
-      setAiConflictModal={setAiConflictModal}
-      clearPendingEvent={() => setAiConflictEvent(null)}
-    />
+      <div className="flex-1 min-w-0 flex justify-center">
+        <div className="w-full max-w-[900px]">
+          <div className="flex items-center justify-between mb-3">
+            <button className="bg-accent-2 hover:bg-accent-2/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1" onClick={() => setEventModal(true)}>Add Event</button>
+            {viewMode == "week" ? (
+              <button className="bg-accent-2 hover:bg-accent-2/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 hover:scale-110 transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:-rotate-2 active:scale-90 active:rotate-1" onClick={() => setViewMode("month")}>Monthly View</button>
+            ) : (
+              <button className="bg-accent-2 hover:bg-accent-2/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 hover:scale-110 transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:-rotate-2 active:scale-90 active:rotate-1" onClick={() => setViewMode("week")}>Weekly View</button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={viewMode === "week" ? previousWeek : previousMonth} className="bg-accent-1 hover:bg-accent-1/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1">← Prev</button>
+            <span className="text-sm font-medium">
+              {viewMode === "week"
+                ? `${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                : selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </span>
+            <button onClick={viewMode === "week" ? nextWeek : nextMonth} className="bg-accent-1 hover:bg-accent-1/80 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-black/15 hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1">Next →</button>
+          </div>
+
+          {viewMode == "week" ? (
+            <WeekGrid events={events} weekDays={weekDays} hours={hours} onEventClick={(event) => setSelectedEvent(event)} />
+          ) : (
+            <MonthGrid selectedMonth={selectedMonth} events={events} onDayClick={(day) => { setSelectedDate(day); setViewMode("week") }} />
+          )}
+        </div>
+          <AiAssistant events={events} handleAIEvent={handleAIEvent} handleAIEdit={handleAIEdit} findAvailableTimes={findAvailableTimes} isOpen={aiOpen} setIsOpen={setAiOpen} pendingEvent={aiConflictEvent} aiConflictModal={aiConflictModal} setAiConflictModal={setAiConflictModal} clearPendingEvent={() => setAiConflictEvent(null)} />
+    </div>
 
   </div>
       {isSettingsOpen && (
