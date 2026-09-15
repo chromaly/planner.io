@@ -10,7 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist -r https://github.com/chromaly/planner-io.git --git /usr/bin/git"
+    "deploy": "gh-pages -d dist --repo https://github.com/chromaly/planner-io.git --git /usr/bin/git"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
