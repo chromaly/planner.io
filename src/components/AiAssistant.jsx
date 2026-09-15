@@ -204,7 +204,7 @@ export function AiAssistant( {events, handleAIEvent, handleAIEdit, findAvailable
       <div
         className={`
           fixed top-0 right-0 z-50
-          h-screen w-[350px]
+          h-screen w-full md:w-[350px]
           bg-surface
           border-l border-white/10
           shadow-2xl

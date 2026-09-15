@@ -5,7 +5,7 @@ export function EventModal({isOpen, onClose, formData, updateField, onSubmit, ed
     if (!isOpen) { return null }
     return (
          <div className="fixed inset-0 bg-bg/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease-out,scaleIn_0.2s_ease-out]">
-           <div className="bg-surface border border-accent-2/40 rounded-xl p-6 w-96 shadow-[0_0_25px_-5px] shadow-accent-2/50">
+           <div className="bg-surface border border-accent-2/40 rounded-xl p-4 w-[calc(100%-2rem)] max-w-96 ...">
              <h2 className="text-xl font-bold mb-4 text-accent-2">New Event</h2>
            <div className="mb-2">
              <label className="block text-sm font-medium mb-1">Event Name</label>

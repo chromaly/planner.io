@@ -12,7 +12,7 @@ export function RemindersTab({ events, onEventClick }){
         <div className="flex items-stretch relative z-50">
             <div
                 className={`transition-all duration-300 ease-in-out overflow-hidden rounded-xl shadow-lg shadow-black/15 pointer-events-auto ${
-                remindersOpen ? 'w-64 bg-surface' : 'w-6 bg-surface'
+                remindersOpen ? 'w-full d:w-64 bg-surface' : 'w-6 bg-surface'
                 }`}
             >
                 <div className={`bg-surface border border-divider/10 rounded-lg p-4 shadow-lg shadow-black/15 transition-all duration-300 ease-in-out overflow-hidden ${remindersOpen ? 'opacity-100' : 'opacity-0'}`}>
@@ -48,7 +48,7 @@ export function RemindersTab({ events, onEventClick }){
                             >
                                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: event.color }} />
                                 <span className="text-sm truncate">{event.name}</span>
-                                <span className="text-xs text-text/40 ml-auto">
+                                <span className="text-xs text-text/40 ml-auto text-right">
                                 {event.startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                 </span>
                             </div>
