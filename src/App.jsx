@@ -412,9 +412,9 @@ function App() {
           )}
         </div>
       </div>  
-  <div className="flex flex-col flex-row gap-6 px-4">
+  <div className="relative px-4 px-4">
 
-      <div className="w-full md:w-64 shrink-0">
+      <div className="lg:absolute lg:left-4 lg:top-0">
         <RemindersTab events={events} onEventClick={(event) => setSelectedEvent(event)} />
       </div>
 
