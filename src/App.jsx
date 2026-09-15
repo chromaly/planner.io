@@ -441,16 +441,12 @@ function App() {
 
           {viewMode == "week" ? (
             <div className="w-full flex justify-center">
-              <div className="w-full max-w-[900px]">
                 <WeekGrid events={events} weekDays={weekDays} hours={hours} onEventClick={(event) => setSelectedEvent(event)} />
               </div>
-            </div>
           ) : (
             <div className="w-full flex justify-center">
-              <div className="w-full max-w-[900px]">
                 <MonthGrid selectedMonth={selectedMonth} events={events} onDayClick={(day) => { setSelectedDate(day); setViewMode("week") }} />
               </div>
-            </div>
           )}
         </div>
           <AiAssistant events={events} handleAIEvent={handleAIEvent} handleAIEdit={handleAIEdit} findAvailableTimes={findAvailableTimes} isOpen={aiOpen} setIsOpen={setAiOpen} pendingEvent={aiConflictEvent} aiConflictModal={aiConflictModal} setAiConflictModal={setAiConflictModal} clearPendingEvent={() => setAiConflictEvent(null)} />
