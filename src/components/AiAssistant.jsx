@@ -211,7 +211,8 @@ export function AiAssistant( {events, handleAIEvent, handleAIEdit, findAvailable
           flex flex-col
           transition-transform duration-300 ease-out
           overflow-y-auto
-          ${isOpen ? "translate-x-0" : "translate-x-full"}
+          ${isOpen ? "translate-x-0" : "translate-x-full"} 
+          pt-[env(safe-area-inset-top)]
         `}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-divider/10">

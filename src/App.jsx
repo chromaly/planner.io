@@ -397,7 +397,7 @@ function App() {
     }, [mode, palette])
 
   return(    
-    <div className={"bg-bg text-text font-sans"}>
+    <div className={"bg-bg text-text font-sans pt-[env(safe-area-inset-top)]"}>
       <div className="relative pt-4">
         <h1 className="text-2xl font-bold text-text text-center">planner.io</h1>
         <h1 className="text-lg font-medium text-text text-center">The planner for all your needs.</h1>
@@ -412,9 +412,9 @@ function App() {
           )}
         </div>
       </div>  
-  <div className="gap-6">
+  <div className="flex flex-col md:flex-row md:relative gap-6">
 
-      <div className="absolute left-0 top-18 w-72 h-full pointer-events-none">
+      <div className="w-full md:w-72 md:absolute md:left-0 md:top-18 md:h-full md:pointer-events-none">
         <RemindersTab events={events} onEventClick={(event) => setSelectedEvent(event)} />
       </div>
 
