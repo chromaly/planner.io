@@ -300,7 +300,7 @@ export function AiAssistant( {events, handleAIEvent, handleAIEdit, findAvailable
                 }
               }}
               placeholder="Ask about your schedule..."
-              className="flex-1 bg-transparent border-0 focus:border-0 outline-none focus:outline-none focus:ring-0 text-text text-sm placeholder:text-text/30"
+              className="flex-1 bg-transparent border-0 focus:border-0 outline-none focus:outline-none focus:ring-0 text-text text-base placeholder:text-text/30"
             />
 
             <button
