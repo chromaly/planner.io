@@ -304,6 +304,7 @@ export function AiAssistant( {events, handleAIEvent, handleAIEdit, findAvailable
             />
 
             <button
+              type="button"
               onClick={sendMessage}
               disabled={!message.trim()}
               className="text-accent-2 disabled:text-text/20 transition-colors"

@@ -3,11 +3,7 @@ import { eventOccursOnDay, getEventPosition, hexToRgba } from './EventHelpers'
 export function WeekGrid({ events, weekDays, hours, onEventClick }) {
   return (
     <div className="border border-divider/10 rounded-lg shadow-lg shadow-black/15 overflow-hidden">
-
-      {/* Horizontal scrolling happens here */}
       <div className="overflow-x-auto">
-
-        {/* This is the actual calendar width */}
         <div className="min-w-[700px]">
 
           {/* Header */}
