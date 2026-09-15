@@ -4,7 +4,7 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth"
 
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from "firebase/ai"
 
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check"
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check"
 
 const firebaseConfig = {
   apiKey: "AIzaSyBLN3fK1oadrrtPy7HLrTFGRGLdyZPVpOw",
@@ -19,7 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 
 initializeAppCheck(app, {provider: 
-  new ReCaptchaV3Provider("6Ld2SqQtAAAAAD6P6downQcLGOdTiKtpg3v-ddpD"),
+  new ReCaptchaEnterpriseProvider("6Ld2SqQtAAAAAD6P6downQcLGOdTiKtpg3v-ddpD"),
   isTokenAutoRefreshEnabled: true
 })
 
