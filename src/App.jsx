@@ -396,6 +396,31 @@ function App() {
       document.documentElement.className = `${mode} palette-${palette}`
     }, [mode, palette])
 
+   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const eventId = params.get("eventId")
+
+    console.log("🔗 Deep link eventId:", eventId)
+    console.log("📅 Loaded events:", events)
+    console.log(
+        "🔍 Matching event:",
+        events.find((event) => event.id === eventId)
+    )
+
+    if (!eventId || !events.length) return
+
+    const event = events.find((event) => event.id === eventId)
+
+    if (event) {
+        console.log("✅ Found event:", event)
+        setSelectedEvent(event)
+
+        window.history.replaceState({}, "", window.location.pathname)
+    } else {
+        console.log("❌ Event ID not found in loaded events")
+    }
+}, [events])
+
   return(    
     <div className={"bg-bg text-text font-sans"}>
       <div className="relative pt-4 pt-[calc(env(safe-area-inset-top)+1rem)]">
