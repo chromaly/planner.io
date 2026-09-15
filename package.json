@@ -7,16 +7,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:ios": "CAPACITOR_BUILD=true vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist --repo https://github.com/chromaly/planner.io.git --git /usr/bin/git"
   },
   "dependencies": {
-    "@capacitor/cli": "^8.5.2",
-    "@capacitor/core": "^8.5.2",
-    "@capacitor/ios": "^8.5.2",
     "@tailwindcss/vite": "^4.3.3",
     "firebase": "^12.18.0",
     "react": "^19.2.8",
