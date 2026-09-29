@@ -1,32 +1,263 @@
-//
-//  ContentView.swift
-//  PlannerNotifications
-//
-//  Created by Ryan on 9/14/26.
-//
-
 import SwiftUI
 import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
-import UserNotifications
 
 struct ContentView: View {
+    @Environment(\.openURL) private var openURL
+    
     @State private var user: User?
+
     @State private var events: [Event] = []
+    @State private var groups: [PlannerGroup] = []
+    @State private var dailyNotes: [DailyNote] = []
+
+    @State private var selectedView: PlannerView = .events
     @State private var errorMessage: String?
 
-    private func startEventListener() {
+    @State private var settings = PlannerSettings(
+        mode: .dark,
+        palette: .tvgirl
+    )
+
+    @State private var showingSettings = false
+
+    private var plannerTheme: PlannerTheme {
+        PlannerTheme(
+            mode: settings.mode,
+            palette: settings.palette
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            plannerTheme.background
+                .ignoresSafeArea()
+
+            if user != nil {
+                plannerView
+            } else {
+                signInView
+            }
+        }
+        .preferredColorScheme(
+            settings.mode == .dark
+                ? .dark
+                : .light
+        )
+        .environment(\.plannerTheme, plannerTheme)
+        .onAppear {
+            user = Auth.auth().currentUser
+
+            if user != nil {
+                startListeners()
+            }
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(
+                settings: settings,
+                onThemeChange: handleThemeChange,
+                onPaletteChange: handlePaletteChange
+            )
+            .environment(\.plannerTheme, plannerTheme)
+        }
+    }
+
+    // MARK: - Main Planner
+
+    private var plannerView: some View {
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                appHeader
+
+                topNavigation
+
+                Group {
+                    switch selectedView {
+                    case .events:
+                        EventsView(
+                            events: events,
+                            groups: groups
+                        )
+
+                    case .notes:
+                        NotesView(
+                            dailyNotes: dailyNotes
+                        )
+
+                    case .reminders:
+                        RemindersView(
+                            events: events,
+                            groups: groups
+                        )
+                    }
+                }
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
+            }
+
+            bottomNavigation
+        }
+        .ignoresSafeArea(.keyboard)
+    }
+
+    // MARK: - Header
+
+    private var appHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button {
+                guard let url = URL(
+                    string: "https://chromaly.github.io/planner.io/"
+                ) else {
+                    return
+                }
+
+                openURL(url)
+            } label: {
+                Text("planner.io")
+                    .font(.sora(27, weight: .bold))
+                    .foregroundStyle(plannerTheme.accent2)
+            }
+            .buttonStyle(.plain)
+
+            Text("The only university planner you'll ever need.")
+                .font(.sora(13, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .frame(
+            maxWidth: .infinity,
+            alignment: .leading
+        )
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
+        .padding(.bottom, 10)
+    }
+
+    // MARK: - Top Navigation
+
+    private var topNavigation: some View {
+        HStack(spacing: 4) {
+            plannerButton(
+                title: "EVENTS",
+                view: .events
+            )
+
+            plannerButton(
+                title: "NOTES",
+                view: .notes
+            )
+
+            plannerButton(
+                title: "REMINDERS",
+                view: .reminders
+            )
+        }
+        .padding(4)
+        .background(plannerTheme.surface)
+        .clipShape(
+            RoundedRectangle(cornerRadius: 12)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    plannerTheme.border,
+                    lineWidth: 1
+                )
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+    }
+
+    private func plannerButton(
+        title: String,
+        view: PlannerView
+    ) -> some View {
+        Button {
+            selectedView = view
+        } label: {
+            Text(title)
+                .font(.sora(10, weight: .bold))
+                .tracking(0.8)
+                .foregroundStyle(
+                    selectedView == view
+                        ? plannerTheme.accent2
+                        : .secondary
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    selectedView == view
+                        ? plannerTheme.accent2.opacity(0.12)
+                        : Color.clear
+                )
+                .clipShape(
+                    RoundedRectangle(cornerRadius: 9)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Bottom Navigation
+
+    private var bottomNavigation: some View {
+        HStack {
+            Button {
+                showingSettings = true
+            } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "gearshape")
+
+                    Text("Settings")
+                }
+                .font(.sora(13, weight: .medium))
+                .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Button {
+                signOut()
+            } label: {
+                HStack(spacing: 7) {
+                    Text("Sign Out")
+
+                    Image(
+                        systemName:
+                            "rectangle.portrait.and.arrow.right"
+                    )
+                }
+                .font(.sora(13, weight: .medium))
+                .foregroundStyle(
+                    .red.opacity(0.85)
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(plannerTheme.border)
+                .frame(height: 1)
+        }
+    }
+
+    // MARK: - Firebase
+
+    private func startListeners() {
         FirebaseService.shared.startEventListener(
             onChange: { newEvents in
-
                 DispatchQueue.main.async {
                     events = newEvents
 
                     let occurrences =
-                        EventScheduler.shared.generateUpcomingOccurrences(
-                            for: newEvents
-                        )
+                        EventScheduler.shared
+                            .generateUpcomingOccurrences(
+                                for: newEvents
+                            )
 
                     NotificationService.shared.reschedule(
                         occurrences: occurrences
@@ -35,204 +266,126 @@ struct ContentView: View {
             },
             onError: { error in
                 DispatchQueue.main.async {
-                    errorMessage = error.localizedDescription
+                    errorMessage =
+                        error.localizedDescription
+                }
+            }
+        )
+
+        FirebaseService.shared.startGroupListener(
+            onChange: { newGroups in
+                DispatchQueue.main.async {
+                    groups = newGroups
+                }
+            },
+            onError: { error in
+                DispatchQueue.main.async {
+                    errorMessage =
+                        error.localizedDescription
+                }
+            }
+        )
+
+        FirebaseService.shared.startNotesListener(
+            onChange: { newNotes in
+                DispatchQueue.main.async {
+                    dailyNotes = newNotes
+                }
+            },
+            onError: { error in
+                DispatchQueue.main.async {
+                    errorMessage =
+                        error.localizedDescription
+                }
+            }
+        )
+
+        FirebaseService.shared.startSettingsListener(
+            onChange: { newSettings in
+                DispatchQueue.main.async {
+                    settings = newSettings
+                }
+            },
+            onError: { error in
+                DispatchQueue.main.async {
+                    errorMessage =
+                        error.localizedDescription
                 }
             }
         )
     }
 
-    private var todaysOccurrences: [EventOccurrence] {
-        let now = Date()
-        let calendar = Calendar.current
+    // MARK: - Settings
 
-        return EventScheduler.shared
-            .generateUpcomingOccurrences(for: events, from: now)
-            .filter {
-                calendar.isDate($0.date, inSameDayAs: now) &&
-                $0.date >= now
-            }
-            .sorted {
-                $0.date < $1.date
-            }
-    }
+    private func handleThemeChange(
+        _ newMode: ThemeMode
+    ) {
+        settings = PlannerSettings(
+            mode: newMode,
+            palette: settings.palette
+        )
 
-    var body: some View {
-        ZStack {
-            Color.plannerBackground
-                .ignoresSafeArea()
-
-            if let user {
-                loggedInView(user: user)
-            } else {
-                signInView
-            }
-        }
-        .preferredColorScheme(.dark)
-        .onAppear {
-            user = Auth.auth().currentUser
-
-            if user != nil {
-                startEventListener()
+        Task {
+            do {
+                try await FirebaseService.shared.saveSettings(
+                    mode: newMode,
+                    palette: settings.palette
+                )
+            } catch {
+                await MainActor.run {
+                    errorMessage =
+                        error.localizedDescription
+                }
             }
         }
     }
 
-    // MARK: - Logged In View
+    private func handlePaletteChange(
+        _ newPalette: Palette
+    ) {
+        settings = PlannerSettings(
+            mode: settings.mode,
+            palette: newPalette
+        )
 
-    private func loggedInView(user: User) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-
-                // MARK: Header
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("planner.io")
-                        .font(.sora(27, weight: .bold))
-                        //.foregroundStyle(Color.plannerPurple)
-
-                    Text("The planner for all your needs.")
-                        .font(.sora(14))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.bottom, 34)
-
-                // MARK: Date
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(
-                        Date().formatted(
-                            .dateTime.weekday(.wide)
-                        )
-                    )
-                    .font(.sora(30, weight: .bold))
-                    //.foregroundStyle(Color.plannerPurple)
-
-                    Text(
-                        Date().formatted(
-                            .dateTime.month(.wide).day().year()
-                        )
-                    )
-                    .font(.sora(14, weight: .medium))
-                    .foregroundStyle(.secondary)
-                }
-                .padding(.bottom, 30)
-
-                // MARK: Today's Events
-
-                SectionHeader(title: "TODAY'S UPCOMING EVENTS")
-
-                if todaysOccurrences.isEmpty {
-                    EmptyDayView()
-                } else {
-                    VStack(spacing: 12) {
-                        ForEach(todaysOccurrences) { occurrence in
-                            EventCard(occurrence: occurrence)
-                        }
-                    }
-                }
-
-                // MARK: Account
-
-                VStack(alignment: .leading, spacing: 5) {
-                    SectionHeader(title: "ACCOUNT")
-
-                    HStack(spacing: 12) {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundStyle(Color.plannerPurple)
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(user.displayName ?? "User")
-                                .font(.sora(15, weight: .semibold))
-                                .foregroundStyle(.primary)
-
-                            Text(user.email ?? "")
-                                .font(.sora(13))
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-                    }
-
-                    // MARK: Account Actions
-
-                    HStack(spacing: 12) {
-                        Button {
-                            do {
-                                try FirebaseService.shared.signOut()
-                                self.user = nil
-                                self.events = []
-                            } catch {
-                                self.errorMessage = error.localizedDescription
-                            }
-                        } label: {
-                            Text("Sign Out")
-                                .font(.sora(14, weight: .medium))
-                                .foregroundStyle(.red)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 13)
-                                .background(Color.plannerSurface)
-                                .clipShape(
-                                    RoundedRectangle(
-                                        cornerRadius: 12
-                                    )
-                                )
-                                .overlay {
-                                    RoundedRectangle(
-                                        cornerRadius: 12
-                                    )
-                                    .stroke(
-                                        Color.plannerBorder,
-                                        lineWidth: 1
-                                    )
-                                }
-                        }
-
-                        Button {
-                            // Settings will go here later
-                        } label: {
-                            Image(systemName: "gearshape")
-                                .font(
-                                    .system(
-                                        size: 17,
-                                        weight: .medium
-                                    )
-                                )
-                                .foregroundStyle(Color.plannerPurple)
-                                .frame(width: 44, height: 44)
-                                .background(Color.plannerSurface)
-                                .clipShape(Circle())
-                                .overlay {
-                                    Circle()
-                                        .stroke(
-                                            Color.plannerBorder,
-                                            lineWidth: 1
-                                        )
-                                }
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 40)
-                }
-                .padding(.top, 40)
-
-                // MARK: Errors
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.sora(12))
-                        .foregroundStyle(.red)
-                        .padding(.top, 14)
+        Task {
+            do {
+                try await FirebaseService.shared.saveSettings(
+                    mode: settings.mode,
+                    palette: newPalette
+                )
+            } catch {
+                await MainActor.run {
+                    errorMessage =
+                        error.localizedDescription
                 }
             }
-            .font(.sora(16))
-            .padding(.horizontal, 20)
-            .padding(.top, 24)
-            .padding(.bottom, 36)
         }
     }
 
-    // MARK: - Sign In View
+    // MARK: - Sign Out
+
+    private func signOut() {
+        do {
+            try FirebaseService.shared.signOut()
+
+            user = nil
+            events = []
+            groups = []
+            dailyNotes = []
+            selectedView = .events
+
+            settings = PlannerSettings(
+                mode: .dark,
+                palette: .tvgirl
+            )
+        } catch {
+            errorMessage =
+                error.localizedDescription
+        }
+    }
+
+    // MARK: - Sign In
 
     private var signInView: some View {
         VStack(spacing: 24) {
@@ -240,23 +393,39 @@ struct ContentView: View {
 
             VStack(spacing: 10) {
                 Text("planner.io")
-                    .font(.sora(34, weight: .bold))
-                    .foregroundStyle(Color.plannerPurple)
+                    .font(
+                        .sora(
+                            34,
+                            weight: .bold
+                        )
+                    )
+                    .foregroundStyle(
+                        plannerTheme.accent2
+                    )
 
-                Text("The planner for all your needs.")
-                    .font(.sora(14))
-                    .foregroundStyle(.secondary)
+                Text(
+                    "The only university planner you'll ever need."
+                )
+                .font(.sora(14))
+                .foregroundStyle(.secondary)
             }
 
             Button {
                 signIn()
             } label: {
                 Text("Sign in with Google")
-                    .font(.sora(15, weight: .semibold))
+                    .font(
+                        .sora(
+                            15,
+                            weight: .semibold
+                        )
+                    )
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
-                    .background(Color.plannerSurface)
+                    .background(
+                        plannerTheme.surface
+                    )
                     .clipShape(
                         RoundedRectangle(
                             cornerRadius: 14
@@ -267,7 +436,7 @@ struct ContentView: View {
                             cornerRadius: 14
                         )
                         .stroke(
-                            Color.plannerBorder,
+                            plannerTheme.border,
                             lineWidth: 1
                         )
                     }
@@ -288,24 +457,33 @@ struct ContentView: View {
         .font(.sora(16))
     }
 
-    // MARK: - Sign In
-
     private func signIn() {
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
-            errorMessage = "Missing Firebase client ID"
+        guard let clientID =
+            FirebaseApp.app()?.options.clientID
+        else {
+            errorMessage =
+                "Missing Firebase client ID"
             return
         }
 
-        let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
+        let config = GIDConfiguration(
+            clientID: clientID
+        )
+
+        GIDSignIn.sharedInstance.configuration =
+            config
 
         guard
-            let windowScene = UIApplication.shared.connectedScenes
-                .first as? UIWindowScene,
+            let windowScene =
+                UIApplication.shared.connectedScenes
+                    .first as? UIWindowScene,
             let rootViewController =
-                windowScene.windows.first?.rootViewController
+                windowScene.windows
+                    .first?
+                    .rootViewController
         else {
-            errorMessage = "Could not find root view controller"
+            errorMessage =
+                "Could not find root view controller"
             return
         }
 
@@ -314,91 +492,61 @@ struct ContentView: View {
         ) { result, error in
 
             if let error {
-                errorMessage = error.localizedDescription
+                DispatchQueue.main.async {
+                    errorMessage =
+                        error.localizedDescription
+                }
                 return
             }
 
             guard
                 let googleUser = result?.user,
-                let idToken = googleUser.idToken?.tokenString
+                let idToken =
+                    googleUser.idToken?.tokenString
             else {
-                errorMessage = "Google authentication failed"
+                DispatchQueue.main.async {
+                    errorMessage =
+                        "Google authentication failed"
+                }
                 return
             }
 
-            let credential = GoogleAuthProvider.credential(
-                withIDToken: idToken,
-                accessToken: googleUser.accessToken.tokenString
-            )
+            let credential =
+                GoogleAuthProvider.credential(
+                    withIDToken: idToken,
+                    accessToken:
+                        googleUser
+                            .accessToken
+                            .tokenString
+                )
 
-            Auth.auth().signIn(with: credential) { authResult, error in
+            Auth.auth().signIn(
+                with: credential
+            ) { authResult, error in
 
                 if let error {
-                    errorMessage = error.localizedDescription
+                    DispatchQueue.main.async {
+                        errorMessage =
+                            error.localizedDescription
+                    }
                     return
                 }
 
-                self.user = authResult?.user
-                startEventListener()
+                DispatchQueue.main.async {
+                    user = authResult?.user
+                    startListeners()
+                }
             }
         }
     }
 }
 
-// MARK: - Section Header
+// MARK: - Navigation
 
-struct SectionHeader: View {
-    let title: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.plannerPurple)
-                .frame(width: 4, height: 16)
-
-            Text(title)
-                .font(.sora(12, weight: .bold))
-                .tracking(1.2)
-        }
-        .padding(.bottom, 12)
-    }
-}
-
-// MARK: - Empty Day
-
-struct EmptyDayView: View {
-    var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "sun.max")
-                .font(.system(size: 30))
-                .foregroundStyle(Color.plannerPurple)
-
-            Text("You got nothing today! Bum.")
-                .font(.sora(17, weight: .semibold))
-                .foregroundStyle(Color.plannerPurple)
-
-            Text("Enjoy the free time.")
-                .font(.sora(14))
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .background(Color.plannerSurface)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: 18
-            )
-        )
-        .overlay {
-            RoundedRectangle(
-                cornerRadius: 18
-            )
-            .stroke(
-                Color.plannerBorder,
-                lineWidth: 1
-            )
-        }
-    }
+private enum PlannerView {
+    case events
+    case notes
+    case reminders
 }
 
 #Preview {

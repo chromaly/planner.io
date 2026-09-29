@@ -1,15 +1,10 @@
-//
-//  EventCard.swift
-//  PlannerNotifications
-//
-//  Created by Ryan on 9/15/26.
-//
-
 import SwiftUI
 
 struct EventCard: View {
     let occurrence: EventOccurrence
+    let group: PlannerGroup?
 
+    @Environment(\.plannerTheme) private var theme
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -32,56 +27,76 @@ struct EventCard: View {
                         )
                     )
                     .font(.sora(14, weight: .semibold))
-                    .foregroundStyle(Color.plannerPurple)
+                    .foregroundStyle(.primary)
 
                     Text(occurrence.event.name)
                         .font(.sora(17, weight: .semibold))
-                        .foregroundStyle(.primary)
-
-                    if occurrence.event.repeatable != "never" {
-                        Text(
-                            occurrence.event.repeatable.capitalized
+                        .foregroundStyle(
+                            Color(hex: occurrence.event.color)
                         )
-                        .font(.sora(12))
-                        .foregroundStyle(.secondary)
+
+                    if let group {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Color(hex: group.color))
+                                .frame(width: 7, height: 7)
+
+                            Text(group.name)
+                                .font(.sora(12, weight: .medium))
+                                .foregroundStyle(
+                                    Color(hex: group.color)
+                                )
+                        }
+                    }
+
+                    if let recurrenceText {
+                        Text(recurrenceText)
+                            .font(.sora(12))
+                            .foregroundStyle(.secondary)
                     }
                 }
 
                 Spacer()
 
                 Image(systemName: "arrow.up.right")
-                    .font(
-                        .system(
-                            size: 14,
-                            weight: .medium
-                        )
-                    )
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(
-                        Color.plannerPurple.opacity(0.8)
+                        theme.accent2.opacity(0.8)
                     )
             }
-            .frame(
-                maxWidth: .infinity,
-                alignment: .leading
-            )
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(18)
-            .background(Color.plannerSurface)
+            .background(theme.surface)
             .clipShape(
-                RoundedRectangle(
-                    cornerRadius: 16
-                )
+                RoundedRectangle(cornerRadius: 16)
             )
             .overlay {
-                RoundedRectangle(
-                    cornerRadius: 16
-                )
-                .stroke(
-                    Color.plannerBorder,
-                    lineWidth: 1
-                )
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        theme.border,
+                        lineWidth: 1
+                    )
             }
         }
         .buttonStyle(.plain)
     }
-}
 
+    private var recurrenceText: String? {
+        switch occurrence.event.recurrence {
+        case .never:
+            return nil
+
+        case .daily:
+            return "Daily"
+
+        case .weekly(let days):
+            return "Weekly · " +
+                days
+                    .map { $0.rawValue.capitalized }
+                    .joined(separator: ", ")
+
+        case .monthly(let dayOfMonth):
+            return "Monthly · Day \(dayOfMonth)"
+        }
+    }
+}

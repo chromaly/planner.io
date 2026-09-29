@@ -28,3 +28,80 @@ extension Color {
     static let plannerSurface = Color(hex: "#16161F")
     static let plannerBorder = Color(hex: "#2A2433")
 }
+
+struct PlannerTheme {
+    let mode: ThemeMode
+    let palette: Palette
+
+    var background: Color {
+        switch mode {
+        case .dark:
+            return Color(hex: "#0D0D14")
+        case .light:
+            return Color(hex: "#FAF9F7")
+        }
+    }
+
+    var surface: Color {
+        switch mode {
+        case .dark:
+            return Color(hex: "#16161F")
+        case .light:
+            return Color(hex: "#FFFFFF")
+        }
+    }
+
+    var text: Color {
+        switch mode {
+        case .dark:
+            return .white
+        case .light:
+            return Color(hex: "#16161F")
+        }
+    }
+
+    var accent1: Color {
+        switch palette {
+        case .tvgirl:
+            return Color(hex: "#FF2E88")
+        case .lalaland:
+            return Color(hex: "#FFB627")
+        }
+    }
+
+    var accent2: Color {
+        switch palette {
+        case .tvgirl:
+            return Color(hex: "#A020F0")
+        case .lalaland:
+            return Color(hex: "#7B5EDB")
+        }
+    }
+
+    var border: Color {
+        switch mode {
+        case .dark:
+            return Color.white.opacity(0.10)
+        case .light:
+            return Color.gray.opacity(0.30)
+        }
+    }
+}
+
+private struct PlannerThemeKey: EnvironmentKey {
+    static let defaultValue = PlannerTheme(
+        mode: .dark,
+        palette: .tvgirl
+    )
+}
+
+extension EnvironmentValues {
+    var plannerTheme: PlannerTheme {
+        get {
+            self[PlannerThemeKey.self]
+        }
+        set {
+            self[PlannerThemeKey.self] = newValue
+        }
+    }
+}

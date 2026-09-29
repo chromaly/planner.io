@@ -53,10 +53,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		EB3B345A306B90360009B2B6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		EBE4C1AC30591646000AD99E = {
 			isa = PBXGroup;
 			children = (
 				EBE4C1B730591646000AD99E /* PlannerNotifications */,
+				EB3B345A306B90360009B2B6 /* Frameworks */,
 				EBE4C1B630591646000AD99E /* Products */,
 			);
 			sourceTree = "<group>";
