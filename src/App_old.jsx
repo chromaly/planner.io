@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import './index.css'
 
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp, query, where } from "firebase/firestore"
-import { db } from './firebase'
+import { db } from './firebase.js'
 
 // Importing Custom JSX Elements
 
@@ -10,7 +9,7 @@ import { createEvent, eventOccursOnDay, eventsOverlap, getWeekDays } from "./com
 
 import { EventModal } from "./components/EventModal.jsx"
 
-import { SettingsModal } from "./components/SettingsModal.jsx"
+import { SettingsModal } from "./components/Settings.js"
 
 import { UserMenu } from "./components/UserMenu.jsx"
 
@@ -28,6 +27,10 @@ import { AiAssistant } from "./components/AiAssistant.jsx"
 
 import { AiConflictModal } from './components/AiConflictModal.jsx'
 
+// Importing Services
+
+import { createEvent, updateEvent, deleteEvent as deleteEventFromFirestore, subscribeToEvents } from "./services/events.ts"
+
 function App() {
     // User Signin Handlers
     const { user, handleSignIn, handleSignOut } = useAuth()
@@ -39,8 +42,8 @@ function App() {
     const [events, setEvents] = useState([])
 
     const [formData, setFormData] = useState({
-      name: "", date: "", time: "", duration: 30, repeatable: "never",
-      importance: "somewhat", location: "", notes: "", color: ""})
+      name: "", date: "", time: "", duration: 30, recurrence: {type: "never", days: []},
+      importance: "somewhat", location: "", notes: "", color: "", groupId: null, isUniversityClass: false, classNotes: ""})
 
     // Website Event Handlers
     const [eventModal, setEventModal] = useState(false)
@@ -75,18 +78,19 @@ function App() {
     const weekDays = getWeekDays(selectedDate)
     
     async function addEvent(newEvent) {
-      const {id, ...eventWithoutId } = newEvent
-      await addDoc(collection(db, "events"), {
-        ...eventWithoutId,
-        startTime: Timestamp.fromDate(newEvent.startTime),
-      })
+      if (!user) return
+
+      await createEvent(user.uid, newEvent)
       setEventModal(false)
     }
     
     async function deleteEvent(eventId) {
-      await deleteDoc(doc(db, "events", eventId))
+      if (!user) return
+
+      await deleteEventFromFirestore(user.uid, eventId)
       setSelectedEvent(null)
     }
+
     function updateField(field, value) {
       setFormData({ ...formData, [field]: value })
     }
@@ -125,6 +129,7 @@ function App() {
         formData.color,
         user?.uid ?? null)
 
+
       const resetForm = () => {
         setEditingEventID(null)
         setEventModal(false)
@@ -146,11 +151,12 @@ function App() {
         return
       }else{
          if (editingEventID) {
-          const { id, ...eventWithoutId } = newEvent
-          await updateDoc(doc(db, "events", editingEventID), {
-            ...eventWithoutId,
-            startTime: Timestamp.fromDate(startTime)
-          })
+          const updatedEvent = {
+            ...newEvent,
+            id: editingEventID
+          }
+
+          await updateEvent(user.uid, updatedEvent)
         }else{
           await addEvent(newEvent)
         }

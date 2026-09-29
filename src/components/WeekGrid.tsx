@@ -1,8 +1,30 @@
-import { eventOccursOnDay, getEventPosition, hexToRgba } from './EventHelpers'
+import {
+  eventOccursOnDay,
+  getEventPosition,
+  hexToRgba,
+} from "../utils/eventUtils"
 
-export function WeekGrid({ events, weekDays, hours, onEventClick }) {
+import { useGroups } from "../hooks/useGroups"
+import { getEventGroup } from "../services/groups"
+import { EventColorIndicator } from "./EventColorIndicator"
+
+import type { Event } from "../data_types/event"
+
+type WeekGridProps = {
+  events: Event[]
+  weekDays: Date[]
+  onEventClick: (event: Event) => void
+}
+
+export function WeekGrid({
+  events,
+  weekDays,
+  onEventClick,
+}: WeekGridProps) {
+  const hours = Array.from({length: 16}, (_, i) => i + 7)
+  const { groups } = useGroups()
   return (
-    <div className="border border-divider/10 rounded-lg shadow-lg shadow-black/15 overflow-hidden">
+    <div className="border border-divider/10 rounded-lg shadow-lg shadow-text/10 overflow-hidden">
       <div className="overflow-x-auto">
         <div className="min-w-[700px]">
 
@@ -10,39 +32,36 @@ export function WeekGrid({ events, weekDays, hours, onEventClick }) {
           <div className="flex border-b border-divider/10 bg-surface">
             <div className="w-16 flex-shrink-0" />
 
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
               <div
-                key={d}
+                key={day}
                 className="flex-1 text-center text-xs py-2 text-text/60"
               >
-                {d}
+                {day}
               </div>
             ))}
           </div>
-
-
-          {/* Vertical scrolling body */}
+          
           <div
             className="overflow-y-auto"
-            style={{ height: '600px' }}
+            style={{ height: "600px" }}
           >
-
             <div
               className="flex"
-              style={{ height: '960px' }}
+              style={{ height: "960px" }}
             >
 
-              {/* Time gutter */}
+      
               <div className="w-16 flex-shrink-0">
-                {hours.map(hour => (
+                {hours.map((hour) => (
                   <div
                     key={hour}
                     className="relative"
-                    style={{ height: '60px' }}
+                    style={{ height: "60px" }}
                   >
                     <span className="text-xs text-text/40 absolute right-2">
                       {hour === 12
-                        ? '12pm'
+                        ? "12pm"
                         : hour < 12
                           ? `${hour}am`
                           : `${hour - 12}pm`}
@@ -51,13 +70,11 @@ export function WeekGrid({ events, weekDays, hours, onEventClick }) {
                 ))}
               </div>
 
-
-              {/* Day columns */}
-              {weekDays.map(day => {
-
-                const dayEvents = events.filter(e => {
-                  return eventOccursOnDay(e, day)
-                })
+       
+              {weekDays.map((day) => {
+                const dayEvents = events.filter((event) =>
+                  eventOccursOnDay(event, day)
+                )
 
                 return (
                   <div
@@ -65,16 +82,16 @@ export function WeekGrid({ events, weekDays, hours, onEventClick }) {
                     className="flex-1 relative border-l border-divider/10"
                   >
 
-                    {hours.map(hour => (
+                    {hours.map((hour) => (
                       <div
                         key={hour}
                         className="border-t border-divider/10"
-                        style={{ height: '60px' }}
+                        style={{ height: "60px" }}
                       />
                     ))}
 
-                    {dayEvents.map(event => {
-
+                    {dayEvents.map((event) => {
+                      const group = getEventGroup(event, groups)
                       const pos = getEventPosition(event)
 
                       return (
@@ -85,11 +102,20 @@ export function WeekGrid({ events, weekDays, hours, onEventClick }) {
                           style={{
                             top: pos.top,
                             height: pos.height,
-                            backgroundColor: hexToRgba(event.color, 0.8)
                           }}
-                        >
-                          {event.name}
+                        >  
+                        <div className="absolute inset-0">
+                          <EventColorIndicator
+                            eventColor={event.color}
+                            groupColor={group?.color ?? null}
+                            variant="calendar"
+                          />
                         </div>
+
+                        <span className="relative z-10">
+                          {event.name}
+                        </span>
+                      </div>
                       )
                     })}
 

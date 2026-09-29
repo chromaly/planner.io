@@ -17,6 +17,7 @@
     "firebase": "^12.18.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
@@ -28,6 +29,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "gh-pages": "^6.3.0",
     "oxlint": "^1.79.0",
+    "typescript": "^7.0.2",
     "vite": "^8.2.2"
   }
 }

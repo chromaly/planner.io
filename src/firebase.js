@@ -46,13 +46,45 @@ const responseSchema = Schema.object({
 
     event: Schema.object({
       properties: {
-        title: Schema.string({ nullable: true}),
-        date: Schema.string({ nullable: true}),
-        startTime: Schema.string({ nullable: true}),
-        durationMinutes: Schema.number({ nullable: true}),
-        repeatable: Schema.string({ nullable: true}),
-        location: Schema.string({ nullable: true}),
-        importance: Schema.string({ nullable: true}),
+        title: Schema.string({ nullable: true }),
+        date: Schema.string({ nullable: true }),
+        startTime: Schema.string({ nullable: true }),
+        durationMinutes: Schema.number({ nullable: true }),
+
+        recurrence: Schema.object({
+          properties: {
+            type: Schema.enumString({
+              enum: [
+                "never",
+                "daily",
+                "weekly",
+                "monthly"
+              ]
+            }),
+
+            days: Schema.array({
+              items: Schema.enumString({
+                enum: [
+                  "sunday",
+                  "monday",
+                  "tuesday",
+                  "wednesday",
+                  "thursday",
+                  "friday",
+                  "saturday"
+                ]
+              }),
+              nullable: true
+            }),
+
+            dayOfMonth: Schema.number({
+              nullable: true
+            })
+          }
+        }),
+
+        location: Schema.string({ nullable: true }),
+        importance: Schema.string({ nullable: true }),
         confirmation: Schema.boolean()
       },
     }),
@@ -66,24 +98,59 @@ const responseSchema = Schema.object({
 
     edit: Schema.object({
       properties: {
-        eventId: Schema.string( {nullable: true}),
+        eventId: Schema.string({ nullable: true }),
+
         changes: Schema.object({
           properties: {
-            title: Schema.string({nullable: true}),
-            date: Schema.string({nullable: true}),
-            startTime: Schema.string({nullable: true}),
-            durationMinutes: Schema.number({nullable: true}),
-            repeatable: Schema.string({nullable: true}),
-            location: Schema.string({nullable: true}),
-            importance: Schema.string({nullable: true})
-            }
-          }),
-          confirmation: Schema.boolean()
-        }
-    }),
+            title: Schema.string({ nullable: true }),
+            date: Schema.string({ nullable: true }),
+            startTime: Schema.string({ nullable: true }),
+            durationMinutes: Schema.number({ nullable: true }),
+
+            recurrence: Schema.object({
+              properties: {
+                type: Schema.enumString({
+                  enum: [
+                    "never",
+                    "daily",
+                    "weekly",
+                    "monthly"
+                  ]
+                }),
+
+                days: Schema.array({
+                  items: Schema.enumString({
+                    enum: [
+                      "sunday",
+                      "monday",
+                      "tuesday",
+                      "wednesday",
+                      "thursday",
+                      "friday",
+                      "saturday"
+                    ]
+                  }),
+                  nullable: true
+                }),
+
+                dayOfMonth: Schema.number({
+                  nullable: true
+                })
+              }
+            }),
+
+            location: Schema.string({ nullable: true }),
+            importance: Schema.string({ nullable: true })
+          }
+        }),
+
+        confirmation: Schema.boolean()
+      }
+    })
   },
+
   optionalProperties: ["event", "search", "edit"]
-});
+})
 
 export const model = getGenerativeModel(ai, {
   model: "gemini-3.5-flash-lite",
@@ -103,13 +170,21 @@ export const model = getGenerativeModel(ai, {
     - date in YYYY-MM-DD format
     - the starting time
     - the duration in minutes
-    - if the event is repeatable (NEVER, WEEKLY, or MONTHLY)
+    - if the event is recurring
     - the location of the event
     - importance (VERY, SOMEWHAT, or NOT VERY)
 
     If the user has not provided one of these values, leave it as null. A value of null means that the user has 
     not provided enough information to determine that field. Null must not be replaced with a reasonable guess
     or default value.
+
+    For recurrence:
+    - If the user says the event does not repeat, use type "never".
+    - If the user says it happens every day, use type "daily".
+    - If the user specifies one or more weekdays, use type "weekly" and include every specified weekday.
+    - If the user says it happens every month on a specific date, use type "monthly" and set dayOfMonth accordingly.
+    - If the user says "weekly" without specifying a weekday, ask which weekday or weekdays.
+    - Do not infer a weekday from the date unless the user explicitly indicates that the event should repeat on that weekday.
 
     Do not invent information that the user did not provide.
 
@@ -159,6 +234,28 @@ export const model = getGenerativeModel(ai, {
     If the user is trying to create an event because their requested
     time conflicts with their calendar:
 
+    When changing recurrence:
+
+    - If the user asks to stop an event from repeating, use:
+      {
+        "type": "never",
+        "days": null,
+        "dayOfMonth": null
+      }
+
+    - If the user asks for a daily recurrence, use:
+      {
+        "type": "daily",
+        "days": null,
+        "dayOfMonth": null
+      }
+
+    - If the user asks for specific weekdays, use type "weekly" and include all specified weekdays.
+
+    - If the user asks for a monthly recurrence on a specific date, use type "monthly" and set dayOfMonth accordingly.
+
+    - Do not change recurrence unless the user explicitly asks to change it.
+
     1. Find an available time for the event.
     2. Suggest the available time to the user.
     3. Do not create the event yet.
@@ -178,6 +275,47 @@ export const model = getGenerativeModel(ai, {
   }
 });
 
+
+const notesResponseSchema = Schema.object({
+  properties: {
+    assignments: Schema.array({
+      items: Schema.object({
+        properties: {
+          noteId: Schema.string(),
+          topic: Schema.string({ nullable: true }),
+        },
+      }),
+    }),
+  },
+})
+
+export const notesModel = getGenerativeModel(ai, {
+  model: "gemini-3.5-flash-lite",
+
+  systemInstruction: `
+    You are an AI assistant for a personal notes application.
+
+    Your job is to organize the user's notes into meaningful topics.
+
+    For every note provided:
+    - Assign exactly one topic.
+    - Use an existing topic when it is a good fit.
+    - Create a new topic when no existing topic fits.
+    - Keep topics concise and descriptive.
+    - Do not modify, rewrite, summarize, or combine note contents.
+    - Return the exact note ID provided by the application.
+    - If a note contains too little information to reasonably determine a topic, use null.
+
+    Topics should be broad enough to group related notes together, but specific enough to be useful.
+
+    Always return an assignment for every note provided.
+`,
+
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: notesResponseSchema,
+  },
+})
 
 export const db = getFirestore(app)
 

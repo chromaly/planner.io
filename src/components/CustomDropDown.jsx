@@ -17,11 +17,11 @@ export function CustomDropDown({ label, value, options, onChange }) {
   return (
     
     <div ref={dropdownRef} className="relative animate-[dropdownBounce_0.25s_cubic-bezier(0.34,1.56,0.64,1)]">
-      <label className="block text-sm font-medium mb-1">{label}</label>
+      <label className="block text-sm font-medium mb-1 focus:outline-none focus:ring-0 focus:border-accent-2">{label}</label>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-bg/30 border border-divider/10 rounded-lg px-3 py-2 w-full text-left text-text"
+        className="bg-bg/30 border border-divider/10 rounded-lg px-3 py-2 w-full text-left text-text focus:outline-none focus:ring-0 focus:border-accent-2"
       >
         {options.find(o => o.value === value)?.label || "Select..."}
       </button>
