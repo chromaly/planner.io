@@ -41,11 +41,6 @@ export function SettingsPage({
     const content = await file.text()
     const importedEvents = parseICSFile(content)
 
-    console.log("EXISTING EVENTS:", events)
-console.log("EXISTING EVENT COUNT:", events.length)
-console.log("IMPORTED EVENTS:", importedEvents)
-
-
    for (const importedEvent of importedEvents) {
    const conflict = events.find((existingEvent) => {
   const overlaps = eventsOverlap(
@@ -56,15 +51,6 @@ console.log("IMPORTED EVENTS:", importedEvents)
     existingEvent
   )
 
-  if (importedEvent.name === "Math 32A Lecture") {
-    console.log("CHECKING MATH 32A AGAINST:", existingEvent.name, {
-      importedStart: importedEvent.startTime,
-      importedDuration: importedEvent.duration,
-      existingStart: existingEvent.startTime,
-      existingDuration: existingEvent.duration,
-      overlaps,
-    })
-  }
 
   return overlaps
 })
