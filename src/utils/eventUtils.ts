@@ -126,10 +126,7 @@ export function eventOccursOnDay(
   }
 }
 
-export function eventsOverlap(
-  newEvent: Event,
-  checkEvent: Event
-): boolean {
+export function eventsOverlap(newEvent: Event, checkEvent: Event): boolean {
   const checkOccurrence = getEventOccurrence(
     checkEvent,
     newEvent.startTime
@@ -139,17 +136,13 @@ export function eventsOverlap(
     return false
   }
 
-  const newStart =
-    newEvent.startTime.getHours() * 60 +
-    newEvent.startTime.getMinutes()
+  const newStart = newEvent.startTime.getTime()
+  const newEnd =
+    newStart + newEvent.duration * 60_000
 
-  const newEnd = newStart + newEvent.duration
-
-  const checkStart =
-    checkOccurrence.startTime.getHours() * 60 +
-    checkOccurrence.startTime.getMinutes()
-
-  const checkEnd = checkStart + checkEvent.duration
+  const checkStart = checkOccurrence.startTime.getTime()
+  const checkEnd =
+    checkStart + checkEvent.duration * 60_000
 
   return newStart < checkEnd && newEnd > checkStart
 }

@@ -27,7 +27,7 @@ export function CalendarPage({ events, addEvent, editEvent, removeEvent, onConfl
 
     const location = useLocation()
 
-    const { user, handleSignIn, handleSignOut } = useAuth()
+    const { user } = useAuth()
 
     const { selectedDate, selectedMonth, viewMode, weekDays, setSelectedDate, setSelectedMonth, setViewMode, previousWeek, nextWeek, previousMonth, nextMonth } = useCalendar()
 

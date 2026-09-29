@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { Event, Recurrence, EventFormData } from "../data_types/event"
+import type { Event, EventFormData } from "../data_types/event"
 import type { User } from "firebase/auth"
 import { eventsOverlap } from "../utils/eventUtils"
 

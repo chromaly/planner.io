@@ -16,14 +16,14 @@ export function Header({
   onSignOut,
 }: HeaderProps) {
   return (
-    <header className="fixed top-0 left-0 w-full flex items-center justify-center px-6 py-4 z-[9999]">
+    <header className="w-full flex items-center justify-center px-6 py-4">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-2xl font-bold text-accent-2">
           planner.io
         </h1>
 
         <p className="text-sm opacity-70">
-          The only university planner you'll need.
+          The only university planner you'll ever need.
         </p>
       </div>
 

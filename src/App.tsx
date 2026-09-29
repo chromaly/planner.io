@@ -260,7 +260,7 @@ function App() {
 
   return (
     <BrowserRouter basename="/planner.io/">
-      <div className="min-h-screen bg-bg text-text font-sans py-15">
+      <div className="min-h-screen bg-bg text-text font-sans">
         <Header
             user={user}
             onSignIn={() => setIsSignInModalOpen(true)}
@@ -297,7 +297,9 @@ function App() {
             theme={mode}
             onThemeChange={handleThemeChange}
             aesthetic={palette}
-            onAestheticChange={handlePaletteChange} />}
+            onAestheticChange={handlePaletteChange}
+            addEvent={addEvent}
+            events={events} />}
           />
         </Routes>
          <AiAssistant
