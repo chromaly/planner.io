@@ -57,7 +57,20 @@ export function CalendarPage({ events, addEvent, editEvent, removeEvent, onConfl
 
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
 
-    
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const eventId = params.get("eventId")
+
+        if (!eventId || !events.length) return
+
+        const event = events.find((event) => event.id === eventId)
+
+        if (event) {
+            setSelectedEvent(event)
+
+            window.history.replaceState({}, "", window.location.pathname)
+        }
+        }, [events])
     return (
     <div>
         <EventModal

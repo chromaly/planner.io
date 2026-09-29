@@ -76,7 +76,7 @@ export function EventDetailsModal({
           Repeats: {getRecurrenceText(event)}
         </p>
 
-        <p className="text-sm mb-3">
+        <p className="text-sm mb-1">
           Importance: {event.importance}
         </p>
 
