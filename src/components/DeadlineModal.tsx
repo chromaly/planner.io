@@ -1,9 +1,5 @@
 import { CustomDropDown } from "./CustomDropDown"
-import type {
-  EventFormData,
-  Recurrence,
-  Weekday,
-} from "../data_types/event"
+import type { Importance } from "../data_types/event"
 
 import { useState } from "react"
 import { useGroups } from "../hooks/useGroups"
@@ -12,76 +8,45 @@ type PresetColor = {
   value: string
 }
 
-type EventModalProps = {
+export type DeadlineFormData = {
+  name: string
+  date: string
+  time: string
+  importance: Importance
+  notes: string
+  color: string
+  groupId: string | null
+  completed: boolean
+}
+
+type DeadlineModalProps = {
   isOpen: boolean
   onClose: () => void
-  formData: EventFormData
+  formData: DeadlineFormData
   updateField: (
-    field: keyof EventFormData,
-    value: EventFormData[keyof EventFormData]
+    field: keyof DeadlineFormData,
+    value: DeadlineFormData[keyof DeadlineFormData]
   ) => void
   onSubmit: () => void
-  editingEventID: string | null
+  editingDeadlineID: string | null
   presetColors: PresetColor[]
 }
 
-const weekdays: { value: Weekday; label: string }[] = [
-  { value: "sunday", label: "S" },
-  { value: "monday", label: "M" },
-  { value: "tuesday", label: "T" },
-  { value: "wednesday", label: "W" },
-  { value: "thursday", label: "T" },
-  { value: "friday", label: "F" },
-  { value: "saturday", label: "S" },
-]
-
-function WeeklyDaysSelector({
-  days,
-  onToggle,
-}: {
-  days: Weekday[]
-  onToggle: (day: Weekday) => void
-}) {
-  return (
-    <div className="mb-2 z-[9999]">
-      <label className="block text-sm font-medium mb-1">
-        Days
-      </label>
-
-      <div className="flex gap-2">
-        {weekdays.map((day) => {
-          const selected = days.includes(day.value)
-
-          return (
-            <button
-              key={day.value}
-              type="button"
-              onClick={() => onToggle(day.value)}
-              className={`w-8 h-8 rounded-full border-2 text-sm font-medium transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 active:scale-90 ${
-                selected
-                  ? "bg-accent-2 border-accent-2 text-text"
-                  : "bg-bg/30 border-divider/20 text-text/70"
-              }`}
-            >
-              {day.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-export function EventModal({
+export function DeadlineModal({
   isOpen,
   onClose,
   formData,
   updateField,
   onSubmit,
-  editingEventID,
+  editingDeadlineID,
   presetColors,
-}: EventModalProps) {
-  const { groups, addGroup, editGroup, handleDeleteGroup } = useGroups()
+}: DeadlineModalProps) {
+  const {
+    groups,
+    addGroup,
+    editGroup,
+    handleDeleteGroup,
+  } = useGroups()
 
   const [isCreatingGroup, setIsCreatingGroup] = useState(false)
   const [newGroupName, setNewGroupName] = useState("")
@@ -90,23 +55,6 @@ export function EventModal({
   const selectedGroup = groups.find(
     (group) => group.id === formData.groupId
   )
-
-  function toggleWeekday(day: Weekday) {
-    if (formData.recurrence.type !== "weekly") return
-
-    const selected = formData.recurrence.days.includes(day)
-
-    const days = selected
-      ? formData.recurrence.days.filter(
-          (currentDay) => currentDay !== day
-        )
-      : [...formData.recurrence.days, day]
-
-    updateField("recurrence", {
-      type: "weekly",
-      days,
-    })
-  }
 
   async function handleCreateGroup() {
     if (!newGroupName.trim() || !newGroupColor) {
@@ -139,150 +87,61 @@ export function EventModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-xl font-bold mb-4 text-accent-2">
-          {editingEventID ? "Edit Event" : "New Event"}
+          {editingDeadlineID ? "Edit Deadline" : "New Deadline"}
         </h2>
 
-        {/* Event Name */}
         <div className="mb-2">
           <label className="block text-sm font-medium mb-1">
-            Event Name
+            Deadline Name
           </label>
 
           <input
             className="bg-bg/30 border border-divider/10 rounded-lg px-3 py-2 w-full text-text placeholder-white/40 focus:outline-none focus:ring-0 focus:border-accent-2"
-            placeholder="Event name"
+            placeholder="Deadline name"
             value={formData.name}
-            onChange={(e) => updateField("name", e.target.value)}
+            onChange={(e) =>
+              updateField("name", e.target.value)
+            }
           />
         </div>
 
-        {/* Date / Time */}
         <div className="flex gap-2 mb-2">
           <div className="flex-1">
             <label className="block text-sm font-medium mb-1">
-              Start Date
+              Due Date
             </label>
 
             <input
               type="date"
               className="bg-bg/30 border border-divider/10 rounded-lg px-3 py-2 w-full text-text focus:outline-none focus:ring-0 focus:border-accent-2"
               value={formData.date}
-              onChange={(e) => updateField("date", e.target.value)}
+              onChange={(e) =>
+                updateField("date", e.target.value)
+              }
             />
           </div>
 
-          {!formData.allDay && (
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-1">
-                Time
-              </label>
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">
+              Due Time
+            </label>
 
-              <input
-                type="time"
-                className="bg-bg/30 border border-divider/10 rounded-lg px-3 py-2 w-full text-text focus:outline-none focus:ring-0 focus:border-accent-2"
-                value={formData.time}
-                onChange={(e) => updateField("time", e.target.value)}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* All Day */}
-        <label className="flex items-center gap-2 mb-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={formData.allDay}
-            onChange={(e) =>
-              updateField("allDay", e.target.checked)
-            }
-            className="w-4 h-4 accent-accent-2 cursor-pointer"
-          />
-
-          <span className="text-sm font-medium">
-            All Day
-          </span>
-        </label>
-
-        {/* Duration */}
-        {!formData.allDay && (
-          <div className="mb-2">
-            <CustomDropDown
-              label="Duration"
-              value={formData.duration}
-              onChange={(val: number) =>
-                updateField("duration", val)
+            <input
+              type="time"
+              className="bg-bg/30 border border-divider/10 rounded-lg px-3 py-2 w-full text-text focus:outline-none focus:ring-0 focus:border-accent-2"
+              value={formData.time}
+              onChange={(e) =>
+                updateField("time", e.target.value)
               }
-              options={[
-                { value: 15, label: "15 min" },
-                { value: 30, label: "30 min" },
-                { value: 45, label: "45 min" },
-                { value: 60, label: "1 hour" },
-                { value: 75, label: "1h 15m" },
-                { value: 90, label: "1h 30m" },
-                { value: 105, label: "1h 45m" },
-                { value: 120, label: "2 hours" },
-                { value: 150, label: "2h 30m" },
-                { value: 180, label: "3 hours" },
-                { value: 240, label: "4 hours" },
-                { value: 360, label: "6 hours" },
-                { value: 480, label: "8 hours" },
-              ]}
             />
           </div>
-        )}
-
-        {/* Recurrence */}
-        <div className="mb-2">
-          <CustomDropDown
-            label="Repeats"
-            value={formData.recurrence.type}
-            onChange={(val: Recurrence["type"]) => {
-              if (val === "never") {
-                updateField("recurrence", { type: "never" })
-              }
-
-              if (val === "daily") {
-                updateField("recurrence", { type: "daily" })
-              }
-
-              if (val === "weekly") {
-                updateField("recurrence", {
-                  type: "weekly",
-                  days: [],
-                })
-              }
-
-              if (val === "monthly") {
-                updateField("recurrence", {
-                  type: "monthly",
-                  dayOfMonth: Number(
-                    formData.date.split("-")[2]
-                  ),
-                })
-              }
-            }}
-            options={[
-              { value: "never", label: "Never" },
-              { value: "daily", label: "Daily" },
-              { value: "weekly", label: "Weekly" },
-              { value: "monthly", label: "Monthly" },
-            ]}
-          />
         </div>
 
-        {formData.recurrence.type === "weekly" && (
-          <WeeklyDaysSelector
-            days={formData.recurrence.days}
-            onToggle={toggleWeekday}
-          />
-        )}
-
-        {/* Importance */}
         <div className="mb-2">
           <CustomDropDown
             label="Importance"
             value={formData.importance}
-            onChange={(val: EventFormData["importance"]) =>
+            onChange={(val: Importance) =>
               updateField("importance", val)
             }
             options={[
@@ -299,14 +158,13 @@ export function EventModal({
           />
         </div>
 
-        {/* Group */}
         <div className="mb-2">
           <CustomDropDown
             label="Group"
             value={formData.groupId ?? ""}
-            onChange={(val: string) => {
+            onChange={(val: string) =>
               updateField("groupId", val || null)
-            }}
+            }
             options={[
               { value: "", label: "None" },
               ...groups.map((group) => ({
@@ -346,12 +204,15 @@ export function EventModal({
                         ? "border-divider"
                         : "border-transparent"
                     }`}
-                    style={{ backgroundColor: preset.value }}
+                    style={{
+                      backgroundColor: preset.value,
+                    }}
                   />
                 ))}
 
                 <button
-                  className="bg-red-500 hover:red-500/80 text-text px-2 py-1 rounded-lg mr-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
+                  type="button"
+                  className="bg-red-500 hover:bg-red-500/80 text-text px-2 py-1 rounded-lg mr-2 text-sm transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
                   onClick={() =>
                     handleDeleteGroup(selectedGroup)
                   }
@@ -367,13 +228,12 @@ export function EventModal({
             onClick={() =>
               setIsCreatingGroup((current) => !current)
             }
-            className="bg-accent-2 hover:bg-accent-2/80 text-text px-2 py-1 rounded-lg mr-2 mt-4 text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
+            className="bg-accent-2 hover:bg-accent-2/80 text-text px-2 py-1 rounded-lg mr-2 mt-4 text-sm transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
           >
             {isCreatingGroup ? "Cancel" : "Create Group"}
           </button>
         </div>
 
-        {/* Create Group */}
         {isCreatingGroup && (
           <div className="mb-3 p-3 bg-bg/30 border border-accent-2/20 rounded-lg">
             <label className="block text-sm font-medium mb-1">
@@ -384,7 +244,9 @@ export function EventModal({
               className="bg-bg/30 border border-divider/10 rounded-lg px-3 py-2 w-full text-text placeholder-white/40 focus:outline-none focus:ring-0 focus:border-accent-2"
               placeholder="Group name"
               value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
+              onChange={(e) =>
+                setNewGroupName(e.target.value)
+              }
             />
 
             <label className="block text-sm font-medium mb-1 mt-2">
@@ -396,13 +258,17 @@ export function EventModal({
                 <button
                   key={preset.value}
                   type="button"
-                  onClick={() => setNewGroupColor(preset.value)}
+                  onClick={() =>
+                    setNewGroupColor(preset.value)
+                  }
                   className={`w-8 h-8 rounded-full border-3 transition-transform hover:scale-110 ${
                     newGroupColor === preset.value
                       ? "border-divider"
                       : "border-transparent"
                   }`}
-                  style={{ backgroundColor: preset.value }}
+                  style={{
+                    backgroundColor: preset.value,
+                  }}
                 />
               ))}
 
@@ -418,7 +284,8 @@ export function EventModal({
               <button
                 type="button"
                 disabled={
-                  !newGroupName.trim() || !newGroupColor
+                  !newGroupName.trim() ||
+                  !newGroupColor
                 }
                 onClick={handleCreateGroup}
                 className="bg-accent-2 hover:bg-accent-2/80 text-text px-3 py-1.5 rounded-lg text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 active:scale-90"
@@ -429,23 +296,6 @@ export function EventModal({
           </div>
         )}
 
-        {/* Location */}
-        <div className="mb-2">
-          <label className="block text-sm font-medium mb-1">
-            Location
-          </label>
-
-          <input
-            className="bg-bg/30 border border-divider/10 rounded-lg px-3 py-2 w-full text-text placeholder-white/40 focus:outline-none focus:ring-0 focus:border-accent-2"
-            placeholder="Location"
-            value={formData.location}
-            onChange={(e) =>
-              updateField("location", e.target.value)
-            }
-          />
-        </div>
-
-        {/* Notes */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">
             Notes (optional!)
@@ -461,7 +311,23 @@ export function EventModal({
           />
         </div>
 
-        {/* Color */}
+        {editingDeadlineID && (
+          <label className="flex items-center gap-2 mb-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.completed}
+              onChange={(e) =>
+                updateField("completed", e.target.checked)
+              }
+              className="accent-accent-2"
+            />
+
+            <span className="text-sm">
+              Completed
+            </span>
+          </label>
+        )}
+
         <div className="mb-2">
           <label className="block text-sm font-medium mb-1">
             Color
@@ -474,7 +340,7 @@ export function EventModal({
               onChange={(e) =>
                 updateField("color", e.target.value)
               }
-              className="w-8 h-8 rounded-full border border-divider/20 cursor-pointer bg-transparent p-0 focus:outline-none focus:ring-0 focus:border-accent-2"
+              className="w-8 h-8 rounded-full border border-divider/20 cursor-pointer bg-transparent p-0 focus:outline-none focus:ring-0"
             />
 
             {presetColors.map((preset) => (
@@ -489,33 +355,32 @@ export function EventModal({
                     ? "border-divider"
                     : "border-transparent"
                 }`}
-                style={{ backgroundColor: preset.value }}
+                style={{
+                  backgroundColor: preset.value,
+                }}
               />
             ))}
           </div>
         </div>
 
-        {/* Submit */}
         <button
           className="bg-accent-2 hover:bg-accent-2/80 text-text px-4 py-2 rounded-lg mr-2 disabled:opacity-40 disabled:cursor-not-allowed transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
           disabled={
             !formData.name ||
             !formData.date ||
-            (!formData.allDay &&
-              (!formData.time || !formData.duration)) ||
-            !formData.location ||
-            !formData.color ||
-            (formData.recurrence.type === "weekly" &&
-              formData.recurrence.days.length === 0)
+            !formData.time ||
+            !formData.color
           }
           onClick={onSubmit}
         >
-          {editingEventID ? "Save Changes" : "Add Event"}
+          {editingDeadlineID
+            ? "Save Changes"
+            : "Add Deadline"}
         </button>
 
-        {/* Cancel */}
         <button
-          className="bg-red-500 hover:red-500/80 px-4 py-2 rounded-lg transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
+          type="button"
+          className="bg-red-500 hover:bg-red-500/80 px-4 py-2 rounded-lg transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
           onClick={onClose}
         >
           Cancel

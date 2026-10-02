@@ -5,10 +5,11 @@ import GoogleSignIn
 
 struct ContentView: View {
     @Environment(\.openURL) private var openURL
-    
+
     @State private var user: User?
 
     @State private var events: [Event] = []
+    @State private var deadlines: [Deadline] = []
     @State private var groups: [PlannerGroup] = []
     @State private var dailyNotes: [DailyNote] = []
 
@@ -77,6 +78,7 @@ struct ContentView: View {
                     case .events:
                         EventsView(
                             events: events,
+                            deadlines: deadlines,
                             groups: groups
                         )
 
@@ -88,6 +90,7 @@ struct ContentView: View {
                     case .reminders:
                         RemindersView(
                             events: events,
+                            deadlines: deadlines,
                             groups: groups
                         )
                     }
@@ -238,6 +241,7 @@ struct ContentView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
+        .background(plannerTheme.background)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(plannerTheme.border)
@@ -262,6 +266,20 @@ struct ContentView: View {
                     NotificationService.shared.reschedule(
                         occurrences: occurrences
                     )
+                }
+            },
+            onError: { error in
+                DispatchQueue.main.async {
+                    errorMessage =
+                        error.localizedDescription
+                }
+            }
+        )
+
+        FirebaseService.shared.startDeadlineListener(
+            onChange: { newDeadlines in
+                DispatchQueue.main.async {
+                    deadlines = newDeadlines
                 }
             },
             onError: { error in
@@ -371,6 +389,7 @@ struct ContentView: View {
 
             user = nil
             events = []
+            deadlines = []
             groups = []
             dailyNotes = []
             selectedView = .events

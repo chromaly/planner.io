@@ -29,6 +29,7 @@ struct Event: Identifiable {
     let name: String
     let startTime: Date
     let duration: Int
+    let allDay: Bool
     let recurrence: Recurrence
     let importance: String
     let location: String

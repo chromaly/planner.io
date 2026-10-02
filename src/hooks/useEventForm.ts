@@ -8,6 +8,7 @@ const initialFormData: EventFormData = {
   date: "",
   time: "",
   duration: 30,
+  allDay: false,
   recurrence: { type: "never"},
   importance: "somewhat",
   location: "",
@@ -46,12 +47,16 @@ export function useEventForm({user, events, addEvent, editEvent, onConflict}: us
         setFormData(initialFormData)
         setEditingEventID(null)
     }
-
     function buildEventData(): Omit<Event, "id"> {
         return {
             name: formData.name,
-            startTime: new Date(`${formData.date}T${formData.time}`),
-            duration: formData.duration,
+            startTime: formData.allDay
+                ? new Date(`${formData.date}T00:00`)
+                : new Date(`${formData.date}T${formData.time}`),
+            duration: formData.allDay
+                ? 1440
+                : formData.duration,
+            allDay: formData.allDay,
             recurrence: formData.recurrence,
             importance: formData.importance,
             location: formData.location,
@@ -60,37 +65,38 @@ export function useEventForm({user, events, addEvent, editEvent, onConflict}: us
             groupId: formData.groupId
         }
     }
-    
-    async function handleSubmit(): Promise<boolean> {
-        if (!user) return false
+    async function handleSubmit(allowOverlap = false): Promise<boolean> {
+    if (!user) return false
 
-        const eventData = buildEventData()
+    const eventData = buildEventData()
 
-        const event: Event = {
-            id: editingEventID ?? "",
-            ...eventData,
-        }
+    const event: Event = {
+        id: editingEventID ?? "",
+        ...eventData,
+    }
 
-        const conflictingTime = events.some(
-            (checkEvent) =>
+    const conflictingTime = !event.allDay && events.some(
+        (checkEvent) =>
+            !checkEvent.allDay &&
             checkEvent.id !== editingEventID &&
             eventsOverlap(event, checkEvent)
-        )
+    )
 
-        if (conflictingTime) {
-            onConflict(event, editingEventID !== null)
-            return false
-        }
-
-        if (editingEventID) {
-            await editEvent(event)
-        } else {
-            await addEvent(eventData)
-        }
-
-        resetForm()
-        return true
+    if (conflictingTime && !allowOverlap) {
+        onConflict(event, editingEventID !== null)
+        return false
     }
+
+    if (editingEventID) {
+        await editEvent(event)
+    } else {
+        await addEvent(eventData)
+    }
+
+    resetForm()
+    return true
+}
+
     function startEditing(event: Event) {
     setEditingEventID(event.id)
 
@@ -106,6 +112,7 @@ export function useEventForm({user, events, addEvent, editEvent, onConflict}: us
         date: `${year}-${month}-${day}`,
         time: `${hours}:${minutes}`,
         duration: event.duration,
+        allDay: event.allDay,
         recurrence: event.recurrence,
         importance: event.importance,
         location: event.location,

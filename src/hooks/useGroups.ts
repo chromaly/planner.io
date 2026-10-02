@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 
 import { useAuth } from "../components/AuthHandler"
 
-import { subscribeToGroups, createGroup, updateGroup } from "../services/groups"
+import { subscribeToGroups, createGroup, updateGroup, deleteGroup } from "../services/groups"
 
 import type { Group } from "../data_types/event"
 
@@ -39,10 +39,19 @@ export function useGroups() {
 
     return updateGroup(userId, group)
     }
+  
+    async function handleDeleteGroup(group: Group): Promise<void> {
+      if (!userId) {
+        throw new Error("User must be signed in to delete a group")
+      }
+
+      return deleteGroup(userId, group.id)
+    }
   return {
     groups,
     addGroup,
-    editGroup
+    editGroup,
+    handleDeleteGroup
   }
 }
 

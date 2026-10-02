@@ -29,6 +29,7 @@ export type Event = {
   name: string
   startTime: Date
   duration: number
+  allDay: boolean
   recurrence: Recurrence
   importance: Importance
   location: string
@@ -44,6 +45,7 @@ export type EventFormData = {
   date: string
   time: string
   duration: number
+  allDay: boolean
   recurrence: Recurrence
   importance: Importance
   location: string

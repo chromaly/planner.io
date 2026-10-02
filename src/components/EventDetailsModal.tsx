@@ -1,5 +1,5 @@
 import { useGroups } from "../hooks/useGroups"
-import { getEventGroup } from "../services/groups"
+import { getGroup } from "../services/groups"
 
 import type { Event, Weekday } from "../data_types/event"
 
@@ -46,7 +46,7 @@ export function EventDetailsModal({
 }: EventDetailsModalProps) {
   const { groups } = useGroups()
 
-  const group = getEventGroup(event, groups)
+  const group = getGroup(event, groups)
 
   return (
     <div

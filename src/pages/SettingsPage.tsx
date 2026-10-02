@@ -2,8 +2,12 @@ import { useState } from "react"
 
 import { parseICSFile } from "../services/icsImporter"
 import { useAuth } from "../components/AuthHandler"
-import type { CreateEventData, Event } from "../data_types/event"
-import { eventsOverlap } from "../utils/eventUtils"
+import { CalendarImportModal } from "../components/CalendarImportModal"
+
+import type {
+  CreateEventData,
+  Event,
+} from "../data_types/event"
 
 type Palette = "tvgirl" | "lalaland"
 
@@ -22,55 +26,58 @@ export function SettingsPage({
   aesthetic,
   onAestheticChange,
   addEvent,
-  events
+  events,
 }: SettingsPageProps) {
   const [importing, setImporting] = useState(false)
+  const [importedEvents, setImportedEvents] = useState<
+    CreateEventData[]
+  >([])
+  const [showImportModal, setShowImportModal] = useState(false)
 
   const { user } = useAuth()
-  
+
   async function handleCalendarImport(
-  event: React.ChangeEvent<HTMLInputElement>
-) {
-  const file = event.target.files?.[0]
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0]
 
-  if (!file) return
+    if (!file) return
 
-  try {
-    setImporting(true)
+    try {
+      setImporting(true)
 
-    const content = await file.text()
-    const importedEvents = parseICSFile(content)
+      const content = await file.text()
+      const parsedEvents = parseICSFile(content)
 
-   for (const importedEvent of importedEvents) {
-   const conflict = events.find((existingEvent) => {
-  const overlaps = eventsOverlap(
-    {
-      id: "",
-      ...importedEvent,
-    },
-    existingEvent
-  )
-
-
-  return overlaps
-})
-
-if (conflict) {
-  console.log(`Skipping "${importedEvent.name}"`)
-  continue
-}
-
-  await addEvent(importedEvent)
-}
-
-    console.log("Calendar import complete")
-  } catch (error) {
-    console.error("Failed to import calendar:", error)
-  } finally {
-    setImporting(false)
-    event.target.value = ""
+      setImportedEvents(parsedEvents)
+      setShowImportModal(true)
+    } catch (error) {
+      console.error("Failed to import calendar:", error)
+    } finally {
+      setImporting(false)
+      event.target.value = ""
+    }
   }
-}
+
+  async function handleImportSelected(
+    selectedEvents: CreateEventData[]
+  ) {
+    for (const event of selectedEvents) {
+      await addEvent(event)
+    }
+
+    console.log(
+      `Imported ${selectedEvents.length} calendar event${
+        selectedEvents.length === 1 ? "" : "s"
+      }`
+    )
+  }
+
+  function closeImportModal() {
+    setShowImportModal(false)
+    setImportedEvents([])
+  }
+
   return (
     <div className="flex-1 px-6 py-8">
       <div className="max-w-3xl mx-auto bg-surface rounded-xl p-10 shadow-lg shadow-text/15">
@@ -78,9 +85,10 @@ if (conflict) {
           Settings
         </h2>
 
+        {/* Mode */}
         <div className="mb-8">
           <label className="block text-sm font-medium mb-3">
-            Theme
+            Mode
           </label>
 
           <div className="flex gap-2">
@@ -108,16 +116,15 @@ if (conflict) {
           </div>
         </div>
 
+        {/* Color Scheme */}
         <div className="mb-8">
           <label className="block text-sm font-medium mb-3">
-            Aesthetic
+            Color Scheme
           </label>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             <button
-              onClick={() =>
-                onAestheticChange("tvgirl")
-              }
+              onClick={() => onAestheticChange("tvgirl")}
               className={`px-4 py-2 rounded-lg text-sm transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1 ${
                 aesthetic === "tvgirl"
                   ? "bg-accent-2"
@@ -128,16 +135,14 @@ if (conflict) {
             </button>
 
             <button
-              onClick={() =>
-                onAestheticChange("lalaland")
-              }
+              onClick={() => onAestheticChange("lalaland")}
               className={`px-4 py-2 rounded-lg text-sm transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1 ${
                 aesthetic === "lalaland"
                   ? "bg-accent-2"
                   : "bg-surface"
               }`}
             >
-              LaLaLand
+              La La Land
             </button>
           </div>
         </div>
@@ -176,11 +181,20 @@ if (conflict) {
                 active:rotate-1
               "
             >
-              {importing ? "Importing..." : "Import Calendar"}
+              {importing ? "Reading Calendar..." : "Import Calendar"}
             </span>
           </label>
         </div>
       </div>
+
+      {showImportModal && (
+        <CalendarImportModal
+          events={importedEvents}
+          existingEvents={events}
+          onClose={closeImportModal}
+          onImport={handleImportSelected}
+        />
+      )}
     </div>
   )
 }

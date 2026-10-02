@@ -150,19 +150,10 @@ export function NotesPage({
     return (
       <textarea
         value={draftsByDate[date] ?? getNoteContent(date)}
-        onChange={(event) => {
-          event.target.style.height = "auto"
-          event.target.style.height =
-            `${event.target.scrollHeight}px`
-
-          handleChange(
-            date,
-            event.target.value
-          )
-        }}
+        onChange={(event) => handleChange(date, event.target.value)}
         placeholder={placeholder}
         rows={10}
-        style={{ overflow: "hidden" }}
+        style={{ overflow: "auto" }}
         className="w-full bg-transparent text-text resize-none outline-none border-none ring-0 focus:outline-none focus-visible:outline-none focus:border-none focus:ring-0 text-base leading-7"
       />
     )

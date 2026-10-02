@@ -1,4 +1,4 @@
-import type { Event, Weekday } from "../data_types/event"
+import type { Event, Importance, Weekday } from "../data_types/event"
 
 function getWeekday(date: Date): Weekday {
   const weekdays: Weekday[] = [
@@ -87,43 +87,52 @@ export function getEventPosition(event: Event) {
   }
 }
 
-
 export function eventOccursOnDay(
   event: Event,
   day: Date
 ): boolean {
-  const eventDate = new Date(event.startTime)
+  const dayStart = new Date(day)
+  dayStart.setHours(0, 0, 0, 0)
 
-  if (day < new Date(
-    eventDate.getFullYear(),
-    eventDate.getMonth(),
-    eventDate.getDate()
-  )) {
+  const dayEnd = new Date(dayStart)
+  dayEnd.setDate(dayEnd.getDate() + 1)
+
+  const eventStart = event.startTime
+
+  // Events cannot occur before their original start date
+  const eventDate = new Date(eventStart)
+  eventDate.setHours(0, 0, 0, 0)
+
+  if (dayStart < eventDate) {
     return false
   }
 
-  switch (event.recurrence.type) {
-    case "never":
-      return (
-        eventDate.toDateString() === day.toDateString()
-      )
-
-    case "daily":
-      return true
-
-    case "weekly":
-      return event.recurrence.days.includes(
-        getWeekday(day)
-      )
-
-    case "monthly":
-      return (
-        day.getDate() === event.recurrence.dayOfMonth
-      )
-
-    default:
-      return false
+  // Recurring events create a new occurrence on each matching day.
+  if (event.recurrence.type === "daily") {
+    return true
   }
+
+  if (event.recurrence.type === "weekly") {
+    return event.recurrence.days.includes(
+      getWeekday(day)
+    )
+  }
+
+  if (event.recurrence.type === "monthly") {
+    return (
+      day.getDate() === event.recurrence.dayOfMonth
+    )
+  }
+
+  // Non-recurring events can span multiple days.
+  const eventEnd = new Date(
+    eventStart.getTime() + event.duration * 60_000
+  )
+
+  return (
+    eventStart < dayEnd &&
+    eventEnd > dayStart
+  )
 }
 
 export function eventsOverlap(newEvent: Event, checkEvent: Event): boolean {
@@ -164,27 +173,13 @@ export function getTodaysEvents(
     )
 }
 
-export function getEventsByImportance(events: Event[]) {
-  const today = new Date()
-
-  const upcoming = events.filter(
-    (event) =>
-      event.recurrence.type !== "never" ||
-      event.startTime >= today
-  )
-
+export function getEventsByImportance(
+  events: Event[]
+): Record<Importance, Event[]> {
   return {
-    "very important!": upcoming.filter(
-      (event) => event.importance === "very"
-    ),
-
-    "somewhat!": upcoming.filter(
-      (event) => event.importance === "somewhat"
-    ),
-
-    "not too urgent...": upcoming.filter(
-      (event) => event.importance === "not too"
-    ),
+    very: events.filter((event) => event.importance === "very"),
+    somewhat: events.filter((event) => event.importance === "somewhat"),
+    "not too": events.filter((event) => event.importance === "not too"),
   }
 }
 
@@ -243,4 +238,162 @@ export function findAvailableTimes(
   }
 
   return availableTimes
+}
+
+export type EventDaySegment = {
+  top: number
+  height: number
+}
+
+export function getEventDaySegment(
+  event: Event,
+  day: Date
+): EventDaySegment | null {
+  if (!eventOccursOnDay(event, day)) {
+    return null
+  }
+
+  const dayStart = new Date(day)
+  dayStart.setHours(0, 0, 0, 0)
+
+  const dayEnd = new Date(dayStart)
+  dayEnd.setDate(dayEnd.getDate() + 1)
+
+  let eventStart: Date
+  let eventEnd: Date
+
+  if (event.recurrence.type === "never") {
+    eventStart = new Date(event.startTime)
+    eventEnd = new Date(
+      eventStart.getTime() + event.duration * 60_000
+    )
+  } else {
+    // Recurring events occur at the same time on the
+    // matching day.
+    eventStart = new Date(day)
+    eventStart.setHours(
+      event.startTime.getHours(),
+      event.startTime.getMinutes(),
+      event.startTime.getSeconds(),
+      event.startTime.getMilliseconds()
+    )
+
+    eventEnd = new Date(
+      eventStart.getTime() + event.duration * 60_000
+    )
+  }
+
+  if (eventEnd <= dayStart || eventStart >= dayEnd) {
+    return null
+  }
+
+  const segmentStart =
+    eventStart > dayStart ? eventStart : dayStart
+
+  const segmentEnd =
+    eventEnd < dayEnd ? eventEnd : dayEnd
+
+  const top =
+    (segmentStart.getHours() * 60 +
+      segmentStart.getMinutes() +
+      segmentStart.getSeconds() / 60) -
+    7 * 60
+
+  const height =
+    (segmentEnd.getTime() - segmentStart.getTime()) / 60_000
+
+  return {
+    top: Math.max(0, top),
+    height: Math.max(1, height),
+  }
+}
+
+export function getEventLayouts(
+  dayEvents: Event[],
+  day: Date
+) {
+  const eventsWithSegments = dayEvents
+    .map((event) => {
+      const segment = getEventDaySegment(event, day)
+
+      if (!segment) return null
+
+      return {
+        event,
+        start: segment.top,
+        end: segment.top + segment.height,
+      }
+    })
+    .filter(
+      (
+        item
+      ): item is {
+        event: Event
+        start: number
+        end: number
+      } => item !== null
+    )
+    .sort((a, b) => a.start - b.start)
+
+  // Divide events into groups that overlap.
+  const groups: typeof eventsWithSegments[] = []
+
+  for (const item of eventsWithSegments) {
+    const lastGroup = groups[groups.length - 1]
+
+    if (!lastGroup) {
+      groups.push([item])
+      continue
+    }
+
+    const groupEnd = Math.max(
+      ...lastGroup.map((groupItem) => groupItem.end)
+    )
+
+    if (item.start < groupEnd) {
+      lastGroup.push(item)
+    } else {
+      groups.push([item])
+    }
+  }
+
+  const layouts = new Map<
+    string,
+    { left: string; width: string }
+  >()
+
+  for (const group of groups) {
+    const columns: typeof eventsWithSegments[] = []
+
+    for (const item of group) {
+      let placed = false
+
+      for (const column of columns) {
+        const lastItem = column[column.length - 1]
+
+        if (lastItem.end <= item.start) {
+          column.push(item)
+          placed = true
+          break
+        }
+      }
+
+      if (!placed) {
+        columns.push([item])
+      }
+    }
+
+    const columnCount = columns.length
+
+    columns.forEach((column, columnIndex) => {
+      column.forEach((item) => {
+        layouts.set(item.event.id, {
+          left: `${(columnIndex * 100) / columnCount}%`,
+          width: `${100 / columnCount}%`,
+        })
+      })
+    })
+  }
+
+  return layouts
 }

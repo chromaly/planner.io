@@ -63,13 +63,11 @@ export function subscribeToGroups(
   })
 }
 
-export function getEventGroup(
-  event: Event,
+export function getGroup(
+  item: { groupId: string | null },
   groups: Group[]
-): Group | null {
-  if (!event.groupId) {
-    return null
-  }
+): Group | undefined {
+  if (!item.groupId) return undefined
 
-  return groups.find((group) => group.id === event.groupId) ?? null
+  return groups.find((group) => group.id === item.groupId)
 }

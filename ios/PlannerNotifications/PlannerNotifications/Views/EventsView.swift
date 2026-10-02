@@ -3,21 +3,19 @@ import FirebaseAuth
 
 struct EventsView: View {
     let events: [Event]
+    let deadlines: [Deadline]
     let groups: [PlannerGroup]
 
     @State private var selectedDate = Calendar.current.startOfDay(
         for: Date()
     )
 
-    @State private var errorMessage: String?
-
     @Environment(\.plannerTheme) private var theme
-    @Environment(\.openURL) private var openURL
 
-    private var occurrencesForSelectedDay: [EventOccurrence] {
+    private var itemsForSelectedDay: [PlannerItem] {
         let calendar = Calendar.current
 
-        return EventScheduler.shared
+        let eventItems = EventScheduler.shared
             .generateUpcomingOccurrences(
                 for: events,
                 from: calendar.startOfDay(for: selectedDate)
@@ -28,42 +26,79 @@ struct EventsView: View {
                     inSameDayAs: selectedDate
                 )
             }
+            .map {
+                PlannerItem.event($0)
+            }
+
+        let deadlineItems = deadlines
+            .filter {
+                calendar.isDate(
+                    $0.dueTime,
+                    inSameDayAs: selectedDate
+                )
+            }
+            .map {
+                PlannerItem.deadline($0)
+            }
+
+        return (eventItems + deadlineItems)
             .sorted {
                 $0.date < $1.date
             }
     }
 
-    private var upcomingOccurrences: [EventOccurrence] {
+    private var upcomingItems: [PlannerItem] {
         let calendar = Calendar.current
 
         if calendar.isDateInToday(selectedDate) {
             let now = Date()
 
-            return occurrencesForSelectedDay.filter {
-                $0.date >= now
+            return itemsForSelectedDay.filter { item in
+                switch item {
+                case .event(let occurrence):
+                    // All-day events remain upcoming for the entire day.
+                    if occurrence.event.allDay {
+                        return true
+                    }
+
+                    return occurrence.date >= now
+
+                case .deadline(let deadline):
+                    return deadline.dueTime >= now
+                }
             }
         }
 
         if selectedDate > calendar.startOfDay(for: Date()) {
-            return occurrencesForSelectedDay
+            return itemsForSelectedDay
         }
 
         return []
     }
 
-    private var pastOccurrences: [EventOccurrence] {
+    private var pastItems: [PlannerItem] {
         let calendar = Calendar.current
 
         if calendar.isDateInToday(selectedDate) {
             let now = Date()
 
-            return occurrencesForSelectedDay.filter {
-                $0.date < now
+            return itemsForSelectedDay.filter { item in
+                switch item {
+                case .event(let occurrence):
+                    if occurrence.event.allDay {
+                        return false
+                    }
+
+                    return occurrence.date < now
+
+                case .deadline(let deadline):
+                    return deadline.dueTime < now
+                }
             }
         }
 
         if selectedDate < calendar.startOfDay(for: Date()) {
-            return occurrencesForSelectedDay
+            return itemsForSelectedDay
         }
 
         return []
@@ -77,15 +112,12 @@ struct EventsView: View {
 
                 // MARK: Upcoming
 
-                if !upcomingOccurrences.isEmpty {
+                if !upcomingItems.isEmpty {
                     SectionHeader(title: "UPCOMING")
 
                     VStack(spacing: 12) {
-                        ForEach(upcomingOccurrences) { occurrence in
-                            EventCard(
-                                occurrence: occurrence,
-                                group: group(for: occurrence)
-                            )
+                        ForEach(upcomingItems) { item in
+                            card(for: item)
                         }
                     }
                     .padding(.bottom, 28)
@@ -93,31 +125,46 @@ struct EventsView: View {
 
                 // MARK: Past
 
-                if !pastOccurrences.isEmpty {
+                if !pastItems.isEmpty {
                     SectionHeader(
                         title: "PAST",
                         subdued: true
                     )
 
                     VStack(spacing: 12) {
-                        ForEach(pastOccurrences) { occurrence in
-                            EventCard(
-                                occurrence: occurrence,
-                                group: group(for: occurrence)
-                            )
-                            .opacity(0.65)
+                        ForEach(pastItems) { item in
+                            card(for: item)
+                                .opacity(0.65)
                         }
                     }
                 }
 
-                if occurrencesForSelectedDay.isEmpty {
+                if itemsForSelectedDay.isEmpty {
                     EmptyDayView()
                 }
-
             }
             .padding(.horizontal, 20)
             .padding(.top, 24)
             .padding(.bottom, 36)
+        }
+    }
+
+    // MARK: - Card
+
+    @ViewBuilder
+    private func card(for item: PlannerItem) -> some View {
+        switch item {
+        case .event(let occurrence):
+            EventCard(
+                occurrence: occurrence,
+                group: group(for: occurrence)
+            )
+
+        case .deadline(let deadline):
+            EventCard(
+                deadline: deadline,
+                group: group(for: deadline)
+            )
         }
     }
 
@@ -202,6 +249,45 @@ struct EventsView: View {
 
         return groups.first {
             $0.id == groupId
+        }
+    }
+
+    private func group(
+        for deadline: Deadline
+    ) -> PlannerGroup? {
+        guard let groupId = deadline.groupId else {
+            return nil
+        }
+
+        return groups.first {
+            $0.id == groupId
+        }
+    }
+}
+
+// MARK: - Planner Item
+
+private enum PlannerItem: Identifiable {
+    case event(EventOccurrence)
+    case deadline(Deadline)
+
+    var id: String {
+        switch self {
+        case .event(let occurrence):
+            return occurrence.id
+
+        case .deadline(let deadline):
+            return deadline.id
+        }
+    }
+
+    var date: Date {
+        switch self {
+        case .event(let occurrence):
+            return occurrence.date
+
+        case .deadline(let deadline):
+            return deadline.dueTime
         }
     }
 }

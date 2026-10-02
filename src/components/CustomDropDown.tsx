@@ -1,23 +1,52 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from "react"
 
-export function CustomDropDown({ label, value, options, onChange }) {
+type DropdownOption<T> = {
+  value: T
+  label: string
+}
+
+type CustomDropDownProps<T> = {
+  label: string
+  value: T
+  options: DropdownOption<T>[]
+  onChange: (value: T) => void
+}
+
+export function CustomDropDown<T>({
+  label,
+  value,
+  options,
+  onChange,
+}: CustomDropDownProps<T>) {
   const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
   }, [])
 
   return (
-    
-    <div ref={dropdownRef} className="relative animate-[dropdownBounce_0.25s_cubic-bezier(0.34,1.56,0.64,1)]">
-      <label className="block text-sm font-medium mb-1 focus:outline-none focus:ring-0 focus:border-accent-2">{label}</label>
+    <div
+      ref={dropdownRef}
+      className="relative animate-[dropdownBounce_0.25s_cubic-bezier(0.34,1.56,0.64,1)]"
+    >
+      <label className="block text-sm font-medium mb-1">
+        {label}
+      </label>
+
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -25,11 +54,12 @@ export function CustomDropDown({ label, value, options, onChange }) {
       >
         {options.find(o => o.value === value)?.label || "Select..."}
       </button>
+
       {isOpen && (
         <ul className="absolute w-full bg-surface border border-accent-2/40 rounded-lg shadow-lg z-10 overflow-hidden">
           {options.map(opt => (
             <li
-              key={opt.value}
+              key={String(opt.value)}
               onClick={() => {
                 onChange(opt.value)
                 setIsOpen(false)
@@ -44,4 +74,3 @@ export function CustomDropDown({ label, value, options, onChange }) {
     </div>
   )
 }
-

@@ -2,7 +2,13 @@ import { useState, useEffect, useRef } from "react"
 
 import { model } from "../firebase"
 
-import type { Event, Recurrence, Importance } from "../data_types/event"
+import type {
+  Event,
+  Recurrence,
+  Importance,
+} from "../data_types/event"
+
+import type { Deadline } from "../data_types/deadline"
 
 type AiMessage = {
   role: "user" | "ai"
@@ -10,14 +16,27 @@ type AiMessage = {
 }
 
 type AiEvent = {
-  title: string
-  date: string
-  startTime: string
-  durationMinutes: number
+  title: string | null
+  date: string | null
+  startTime: string | null
+  durationMinutes: number | null
+  allDay: boolean
   recurrence: Recurrence
-  importance: Importance
-  location: string
+  importance: Importance | null
+  location: string | null
+  notes: string | null
   confirmation?: boolean
+  conflictAccepted?: boolean
+}
+
+type AiDeadline = {
+  title: string | null
+  date: string | null
+  dueTime: string | null
+  importance: Importance | null
+  notes: string | null
+  confirmation: boolean
+  conflictAccepted: boolean
 }
 
 type AiSearch = {
@@ -32,9 +51,24 @@ type AiEdit = {
     date: string | null
     startTime: string | null
     durationMinutes: number | null
+    allDay: boolean | null
     recurrence: Recurrence | null
     importance: Importance | null
     location: string | null
+    notes: string | null
+  }
+  confirmation?: boolean
+  conflictAccepted?: boolean
+}
+
+type AiDeadlineEdit = {
+  deadlineId: string
+  changes: {
+    title: string | null
+    date: string | null
+    dueTime: string | null
+    importance: Importance | null
+    notes: string | null
   }
   confirmation?: boolean
 }
@@ -44,34 +78,67 @@ type AiResponse = {
   response: string
   search?: AiSearch
   event?: AiEvent
+  deadline?: AiDeadline
   edit?: AiEdit
+  deadlineEdit?: AiDeadlineEdit
 }
 
 type AiAssistantProps = {
   events: Event[]
-  handleAIEvent: (event: AiEvent) => Promise<{
+  deadlines: Deadline[]
+
+  handleAIEvent: (
+    event: AiEvent
+  ) => Promise<{
     success: boolean
     message?: string
   }>
-  handleAIEdit: (edit: AiEdit) => Promise<{
+
+  handleAIEdit: (
+    edit: AiEdit
+  ) => Promise<{
     success: boolean
     message?: string
   }>
+
+  handleAIDeadline: (
+    deadline: AiDeadline
+  ) => Promise<{
+    success: boolean
+    message?: string
+  }>
+
+  handleAIDeadlineEdit: (
+    edit: AiDeadlineEdit
+  ) => Promise<{
+    success: boolean
+    message?: string
+  }>
+
   findAvailableTimes: (
     events: Event[],
     date: Date,
     durationMinutes: number
   ) => { start: Date; end: Date }[]
+
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  pendingEvent: { event: Event, isEditing: boolean } | null
+
+  pendingEvent: {
+    event: Event
+    isEditing: boolean
+  } | null
+
   clearPendingEvent: () => void
 }
 
 export function AiAssistant({
   events,
+  deadlines,
   handleAIEvent,
   handleAIEdit,
+  handleAIDeadline,
+  handleAIDeadlineEdit,
   findAvailableTimes,
   isOpen,
   setIsOpen,
@@ -82,12 +149,18 @@ export function AiAssistant({
   const [messages, setMessages] = useState<AiMessage[]>([])
   const [chat, setChat] = useState<any>(null)
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  // Deadline waiting for conflict confirmation.
+  const [pendingDeadline, setPendingDeadline] =
+    useState<AiDeadline | null>(null)
+
+  const messagesEndRef =
+    useRef<HTMLDivElement | null>(null)
 
   function formatEventsForAI(events: Event[]) {
     return events.map((event) => ({
       id: event.id,
       name: event.name,
+
       date:
         `${event.startTime.getFullYear()}-` +
         `${String(
@@ -96,6 +169,7 @@ export function AiAssistant({
         `${String(
           event.startTime.getDate()
         ).padStart(2, "0")}`,
+
       startTime:
         `${String(
           event.startTime.getHours()
@@ -103,39 +177,119 @@ export function AiAssistant({
         `${String(
           event.startTime.getMinutes()
         ).padStart(2, "0")}`,
+
       duration: event.duration,
       recurrence: event.recurrence,
       importance: event.importance,
       location: event.location,
+      notes: event.notes,
     }))
   }
+
+  function formatDeadlinesForAI(
+    deadlines: Deadline[]
+  ) {
+    return deadlines.map((deadline) => ({
+      id: deadline.id,
+      name: deadline.name,
+      dueTime: deadline.dueTime.toISOString(),
+      importance: deadline.importance,
+      notes: deadline.notes,
+      completed: deadline.completed,
+    }))
+  }
+
+  function getCalendarContext() {
+    return `
+      Current calendar events:
+      ${JSON.stringify(formatEventsForAI(events))}
+
+      Current deadlines:
+      ${JSON.stringify(formatDeadlinesForAI(deadlines))}
+    `
+  }
+
+  function isConfirmation(text: string) {
+    const normalized = text
+      .trim()
+      .toLowerCase()
+      .replace(/[.!?]+$/, "")
+
+    return [
+      "yes",
+      "yeah",
+      "yep",
+      "yup",
+      "sure",
+      "okay",
+      "ok",
+      "do it",
+      "go ahead",
+      "create it",
+      "create it anyway",
+      "that's fine",
+      "thats fine",
+      "yes please",
+      "yeah thats fine",
+      "yeah that's fine",
+    ].includes(normalized)
+  }
+
+  function isRejection(text: string) {
+    const normalized = text
+      .trim()
+      .toLowerCase()
+      .replace(/[.!?]+$/, "")
+
+    return [
+      "no",
+      "nope",
+      "nah",
+      "cancel",
+      "cancel it",
+      "don't",
+      "dont",
+      "don't create it",
+      "dont create it",
+      "never mind",
+      "nevermind",
+    ].includes(normalized)
+  }
+
   async function sendInternalMessage(text: string) {
     if (!chat) return null
 
-    const today = new Date().toISOString().split("T")[0]
+    const today =
+      new Date().toISOString().split("T")[0]
 
     try {
       const result = await chat.sendMessage(
-        `Today's date is ${today}. Current calendar events: ${JSON.stringify(
-          formatEventsForAI(events)
-        )}. ${text}`
+        `Today's date is ${today}.
+        ${getCalendarContext()}
+        ${text}`
       )
 
       const data =
-        JSON.parse(result.response.text()) as AiResponse
+        JSON.parse(
+          result.response.text()
+        ) as AiResponse
 
       return await processAIResponse(data)
     } catch (error) {
-      console.error("INTERNAL AI ERROR:", error)
+      console.error(
+        "INTERNAL AI ERROR:",
+        error
+      )
+
       return null
     }
   }
 
-  async function processAIResponse(data: AiResponse) {
+  async function processAIResponse(
+    data: AiResponse
+  ) {
     if (data.intent === "FIND_FREE_TIME") {
       const search = data.search
-
-      console.log("DATE", search?.date)
 
       if (
         search &&
@@ -145,37 +299,45 @@ export function AiAssistant({
         const [year, month, day] =
           search.date.split("-").map(Number)
 
-        const date = new Date(year, month - 1, day)
-
-        const availableTimes = findAvailableTimes(
-          events,
-          date,
-          search.durationMinutes
+        const date = new Date(
+          year,
+          month - 1,
+          day
         )
 
-        console.log("AVAILABLE:", availableTimes)
+        const availableTimes =
+          findAvailableTimes(
+            events,
+            date,
+            search.durationMinutes
+          )
 
         if (availableTimes.length === 0) {
           data.response =
             "You don't have enough free time for that on this day."
         } else {
-          const formattedTimes = availableTimes.map(
-            (slot) => {
+          const formattedTimes =
+            availableTimes.map((slot) => {
               const start =
-                slot.start.toLocaleTimeString([], {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })
+                slot.start.toLocaleTimeString(
+                  [],
+                  {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  }
+                )
 
               const end =
-                slot.end.toLocaleTimeString([], {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })
+                slot.end.toLocaleTimeString(
+                  [],
+                  {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  }
+                )
 
               return `${start}–${end}`
-            }
-          )
+            })
 
           data.response =
             `You're free during these times: ${formattedTimes.join(
@@ -183,7 +345,11 @@ export function AiAssistant({
             )}.`
         }
       }
-    } else if (data.intent === "CREATE_EVENT") {
+    }
+
+    else if (
+      data.intent === "CREATE_EVENT"
+    ) {
       const event = data.event
 
       if (!event) {
@@ -199,29 +365,44 @@ export function AiAssistant({
         event.durationMinutes !== null &&
         event.recurrence !== null &&
         event.location !== null &&
-        event.importance !== null
+        event.importance !== null &&
+        event.notes !== null
 
-      if (eventComplete && event.confirmation) {
-        const eventResult = await handleAIEvent(event)
+      if (
+        eventComplete &&
+        event.confirmation
+      ) {
+        const result =
+          await handleAIEvent(event)
 
-        console.log("RESULT:", eventResult)
-
-        if (!eventResult.success) {
-          data.response = eventResult.message ?? ""
+        if (!result.success) {
+          data.response =
+            result.message ?? ""
         }
       }
-    } else if (data.intent === "EDIT_EVENT") {
-      if (data.edit?.confirmation) {
-        try {
-          const eventResult =
-            await handleAIEdit(data.edit)
+    }
 
-          if (!eventResult.success) {
+    else if (
+      data.intent === "EDIT_EVENT"
+    ) {
+      if (
+        data.edit?.confirmation
+      ) {
+        try {
+          const result =
+            await handleAIEdit(
+              data.edit
+            )
+
+          if (!result.success) {
             data.response =
-              eventResult.message ?? ""
+              result.message ?? ""
           }
         } catch (error) {
-          console.error("AI EDIT ERROR:", error)
+          console.error(
+            "AI EDIT ERROR:",
+            error
+          )
 
           data.response =
             "I couldn't update that event."
@@ -229,10 +410,89 @@ export function AiAssistant({
       }
     }
 
+    else if (
+      data.intent === "CREATE_DEADLINE"
+    ) {
+      const deadline =
+        data.deadline
+
+      if (!deadline) {
+        throw new Error(
+          "CREATE_DEADLINE response did not contain a deadline."
+        )
+      }
+
+      const deadlineComplete =
+        deadline.title !== null &&
+        deadline.date !== null &&
+        deadline.dueTime !== null
+
+      if (
+        deadlineComplete &&
+        deadline.confirmation
+      ) {
+        const result =
+          await handleAIDeadline(
+            deadline
+          )
+
+        if (!result.success) {
+          // The application detected a conflict.
+          // Save the exact deadline so the user's
+          // next "yes" can approve THIS deadline.
+          if (
+            result.message?.startsWith(
+              "This conflicts with"
+            )
+          ) {
+            setPendingDeadline({
+              ...deadline,
+              conflictAccepted: false,
+            })
+          }
+
+          data.response =
+            result.message ?? ""
+        } else {
+          setPendingDeadline(null)
+        }
+      }
+    }
+
+    else if (
+      data.intent === "EDIT_DEADLINE"
+    ) {
+      if (
+        data.deadlineEdit?.confirmation
+      ) {
+        try {
+          const result =
+            await handleAIDeadlineEdit(
+              data.deadlineEdit
+            )
+
+          if (!result.success) {
+            data.response =
+              result.message ?? ""
+          }
+        } catch (error) {
+          console.error(
+            "AI DEADLINE EDIT ERROR:",
+            error
+          )
+
+          data.response =
+            "I couldn't update that deadline."
+        }
+      }
+    }
+
     return data
   }
 
-  async function sendMessage(text: string = message) {
+  async function sendMessage(
+    text: string = message
+  ) {
     if (!text.trim() || !chat) return
 
     const userMessage = text
@@ -245,40 +505,106 @@ export function AiAssistant({
       },
     ])
 
+    setMessage("")
+
+    /*
+     * Handle deadline conflict confirmation
+     * directly in the application.
+     *
+     * We intentionally do this BEFORE sending
+     * "yes" to Gemini. Gemini does not need to
+     * figure out what "yes" refers to.
+     */
+    if (pendingDeadline) {
+      if (isConfirmation(userMessage)) {
+        const confirmedDeadline: AiDeadline = {
+          ...pendingDeadline,
+          confirmation: true,
+          conflictAccepted: true,
+        }
+
+        setPendingDeadline(null)
+
+        try {
+          const result =
+            await handleAIDeadline(
+              confirmedDeadline
+            )
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "ai",
+              content:
+                result.message ??
+                `Created deadline "${confirmedDeadline.title}".`,
+            },
+          ])
+        } catch (error) {
+          console.error(
+            "AI DEADLINE CONFIRMATION ERROR:",
+            error
+          )
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "ai",
+              content:
+                "I couldn't create that deadline.",
+            },
+          ])
+        }
+
+        return
+      }
+
+      if (isRejection(userMessage)) {
+        setPendingDeadline(null)
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "ai",
+            content:
+              "Okay, I won't create that deadline.",
+          },
+        ])
+
+        return
+      }
+    }
+
     const today =
       new Date().toISOString().split("T")[0]
 
-    setMessage("")
-
-    console.log(
-      "starting to try chatbot response..."
-    )
-
     try {
-      const result = await chat.sendMessage(
-        `Today's date is ${today}. Current calendar events: ${JSON.stringify(
-          formatEventsForAI(events)
-        )}. User message: ${userMessage}`
-      )
-
-      const aiResponse = result.response.text()
+      const result =
+        await chat.sendMessage(
+          `Today's date is ${today}.
+          ${getCalendarContext()}
+          User message: ${userMessage}`
+        )
 
       const data =
-        JSON.parse(aiResponse) as AiResponse
+        JSON.parse(
+          result.response.text()
+        ) as AiResponse
 
       await processAIResponse(data)
-
-      const aiMessage = data.response
 
       setMessages((prev) => [
         ...prev,
         {
           role: "ai",
-          content: aiMessage,
+          content: data.response,
         },
       ])
     } catch (error) {
-      console.log("ERROR:", error)
+      console.error(
+        "AI ERROR:",
+        error
+      )
 
       setMessages((prev) => [
         ...prev,
@@ -293,78 +619,106 @@ export function AiAssistant({
 
   useEffect(() => {
     if (isOpen && !chat) {
-      const newChat = model.startChat()
+      const newChat =
+        model.startChat()
+
       setChat(newChat)
     }
   }, [isOpen, chat])
 
   useEffect(() => {
-    console.log("AI EFFECT:", {
-      isOpen,
-      chat,
-      pendingEvent,
-    })
+    if (
+      !isOpen ||
+      !chat ||
+      !pendingEvent
+    ) {
+      return
+    }
 
-    if (isOpen && chat && pendingEvent) {
-      console.log("ALL CONDITIONS PASSED")
+    const date =
+      `${pendingEvent.event.startTime.getFullYear()}-` +
+      `${String(
+        pendingEvent.event.startTime.getMonth() + 1
+      ).padStart(2, "0")}-` +
+      `${String(
+        pendingEvent.event.startTime.getDate()
+      ).padStart(2, "0")}`
 
-      const date =
-        `${pendingEvent.event.startTime.getFullYear()}-` +
-        `${String(
-          pendingEvent.event.startTime.getMonth() + 1
-        ).padStart(2, "0")}-` +
-        `${String(
-          pendingEvent.event.startTime.getDate()
-        ).padStart(2, "0")}`
-
-      const time = pendingEvent.event.startTime
+    const time =
+      pendingEvent.event.startTime
         .toTimeString()
         .slice(0, 5)
 
-      const prompt = `
-        I just tried to ${pendingEvent.isEditing ? "edit an existing" : "create a new "}, but it conflicts with my calendar.
+    const prompt = `
+      The application detected a conflict with
+      the user's requested event.
 
-          ${pendingEvent.isEditing
-            ? `IMPORTANT: This is an EDIT to an existing event.
-              Do NOT create a new event.
-              If the user chooses a different time, return EDIT_EVENT
-              using the existing event ID: ${pendingEvent.event.id}`
-            : `This is a new event. Do not create it yet.`}
-
-        Event:
-        Title: ${pendingEvent.event.name}
-        Date: ${date}
-        Start time: ${time}
-        Duration: ${pendingEvent.event.duration} minutes
-        Recurrence: ${JSON.stringify(pendingEvent.event.recurrence)}
-        Location: ${pendingEvent.event.location}
-        Importance: ${pendingEvent.event.importance}
-
-        Please help me find another available time for this event.
-        First check my calendar for available times.
-        Do not create the event yet. Ask me to confirm a new time first.
-      `
-
-      async function run() {
-        const data =
-          await sendInternalMessage(prompt)
-
-        if (data) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "ai",
-              content: data.response,
-            },
-          ])
-        }
-
-        clearPendingEvent()
+      ${
+        pendingEvent.isEditing
+          ? `
+            This is an EDIT to an existing event.
+            Do NOT create a new event.
+            Existing event ID:
+            ${pendingEvent.event.id}
+          `
+          : `
+            This is a new event.
+            Do not create it yet.
+          `
       }
 
-      run()
+      Requested event:
+      Title: ${pendingEvent.event.name}
+      Date: ${date}
+      Start time: ${time}
+      Duration: ${pendingEvent.event.duration} minutes
+      Recurrence: ${JSON.stringify(
+        pendingEvent.event.recurrence
+      )}
+      Location: ${pendingEvent.event.location}
+      Importance: ${pendingEvent.event.importance}
+      Notes: ${pendingEvent.event.notes}
+
+      The application will provide the conflicting
+      calendar items in the calendar context.
+
+      Tell the user which existing event or events
+      conflict with this requested event.
+
+      Ask whether they want to ${
+        pendingEvent.isEditing
+          ? "keep the edit"
+          : "create the event anyway"
+      }.
+
+      Do NOT suggest another time.
+      Do NOT create or modify anything yet.
+      Wait for the user's confirmation.
+    `
+
+    async function run() {
+      const data =
+        await sendInternalMessage(prompt)
+
+      if (data) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "ai",
+            content: data.response,
+          },
+        ])
+      }
+
+      clearPendingEvent()
     }
-  }, [isOpen, chat, pendingEvent])
+
+    run()
+  }, [
+    isOpen,
+    chat,
+    pendingEvent,
+  ])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -395,7 +749,11 @@ export function AiAssistant({
           flex flex-col
           transition-transform duration-300 ease-out
           overflow-y-auto
-          ${isOpen ? "translate-x-0" : "translate-x-full"}
+          ${
+            isOpen
+              ? "translate-x-0"
+              : "translate-x-full"
+          }
           pt-[env(safe-area-inset-top)]
         `}
       >
@@ -415,7 +773,9 @@ export function AiAssistant({
           </div>
 
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={() =>
+              setIsOpen(false)
+            }
             className="text-text/40 hover:text-text transition-colors text-xl"
             aria-label="Close AI assistant"
           >
@@ -442,32 +802,34 @@ export function AiAssistant({
               </div>
             </div>
           ) : (
-            messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${
-                  msg.role === "user"
-                    ? "justify-end"
-                    : "justify-start"
-                }`}
-              >
+            messages.map(
+              (msg, index) => (
                 <div
-                  className={`
-                    max-w-[80%]
-                    px-4 py-3
-                    rounded-2xl
-                    text-sm
-                    ${
-                      msg.role === "user"
-                        ? "bg-accent-2 text-white/90 rounded-br-md"
-                        : "bg-accent-1 text-white/90 rounded-bl-md"
-                    }
-                  `}
+                  key={index}
+                  className={`flex ${
+                    msg.role === "user"
+                      ? "justify-end"
+                      : "justify-start"
+                  }`}
                 >
-                  {msg.content}
+                  <div
+                    className={`
+                      max-w-[80%]
+                      px-4 py-3
+                      rounded-2xl
+                      text-sm
+                      ${
+                        msg.role === "user"
+                          ? "bg-accent-2 text-white/90 rounded-br-md"
+                          : "bg-accent-1 text-white/90 rounded-bl-md"
+                      }
+                    `}
+                  >
+                    {msg.content}
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            )
           )}
 
           <div ref={messagesEndRef} />
@@ -492,7 +854,9 @@ export function AiAssistant({
 
             <button
               type="button"
-              onClick={() => sendMessage()}
+              onClick={() =>
+                sendMessage()
+              }
               disabled={!message.trim()}
               className="text-accent-2 disabled:text-text/20 transition-colors"
             >

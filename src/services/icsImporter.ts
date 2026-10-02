@@ -3,6 +3,7 @@ import type {
   CreateEventData,
   Recurrence,
   Weekday,
+  Event
 } from "../data_types/event"
 
 const weekdayMap: Record<string, Weekday> = {
@@ -93,26 +94,16 @@ export function parseICSFile(content: string): CreateEventData[] {
   const component = new ICAL.Component(jcalData)
   const vevents = component.getAllSubcomponents("vevent")
 
-  return vevents.flatMap((vevent) => {
+  return vevents.map((vevent) => {
     const event = new ICAL.Event(vevent)
 
     const startTime = event.startDate.toJSDate()
     const endTime = event.endDate?.toJSDate()
-    const isAllDay = event.startDate.isDate
-
-    // Skip multi-day events
-    if (isAllDay && endTime) {
-      const days =
-        (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24)
-
-      if (days > 1) {
-        return []
-      }
-    }
+    const allDay = event.startDate.isDate
 
     let duration = 60
 
-    if (!isAllDay && endTime) {
+    if (endTime) {
       duration = Math.max(
         1,
         Math.round(
@@ -121,16 +112,62 @@ export function parseICSFile(content: string): CreateEventData[] {
       )
     }
 
-    return [{
+    return {
       name: event.summary || "Untitled Event",
       startTime,
       duration,
+      allDay,
       recurrence: parseRecurrence(event),
       importance: "not too",
       location: event.location || "",
       notes: event.description || "",
       color: parseColor(event),
       groupId: null,
-    }]
+    }
   })
+}
+
+export type EventDaySegment = {
+  top: number
+  height: number
+}
+
+export function getEventDaySegment(
+  event: Event,
+  day: Date
+): EventDaySegment | null {
+  const dayStart = new Date(day)
+  dayStart.setHours(0, 0, 0, 0)
+
+  const dayEnd = new Date(dayStart)
+  dayEnd.setDate(dayEnd.getDate() + 1)
+
+  const eventStart = event.startTime
+  const eventEnd = new Date(
+    eventStart.getTime() + event.duration * 60_000
+  )
+
+  if (eventEnd <= dayStart || eventStart >= dayEnd) {
+    return null
+  }
+
+  const segmentStart =
+    eventStart > dayStart ? eventStart : dayStart
+
+  const segmentEnd =
+    eventEnd < dayEnd ? eventEnd : dayEnd
+
+  const top =
+    (segmentStart.getHours() * 60 +
+      segmentStart.getMinutes() +
+      segmentStart.getSeconds() / 60) -
+    7 * 60
+
+  const height =
+    (segmentEnd.getTime() - segmentStart.getTime()) / 60_000
+
+  return {
+    top: Math.max(0, top),
+    height: Math.max(1, height),
+  }
 }
