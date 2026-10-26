@@ -26,16 +26,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
+if (import.meta.env.DEV) {
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true
+}
+
 initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider(
     "6Ld2SqQtAAAAAD6P6downQcLGOdTiKtpg3v-ddpD"
   ),
   isTokenAutoRefreshEnabled: true,
 })
-
-if (import.meta.env.DEV) {
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true
-}
 
 const ai = getAI(app, {
   backend: new GoogleAIBackend(),

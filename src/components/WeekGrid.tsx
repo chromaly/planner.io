@@ -31,7 +31,7 @@ export function WeekGrid({
   const { groups } = useGroups()
 
   return (
-    <div className="border border-divider/10 rounded-lg shadow-lg shadow-text/10 overflow-hidden">
+    <div className="calendar-surface border border-divider/10 rounded-lg shadow-lg shadow-text/10 overflow-hidden">
       <div className="overflow-x-auto">
         <div className="min-w-[700px]">
 

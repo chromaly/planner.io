@@ -45,6 +45,7 @@ export function MonthGrid({
   return (
     <div
       className="
+      calendar-surface
         border
         border-divider/10
         rounded-lg

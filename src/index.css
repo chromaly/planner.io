@@ -57,3 +57,21 @@ body,
   max-width: 100%;
   overflow-x: hidden;
 }
+
+/* Applied only when opened with ?embed=uni */
+html[data-unico="true"],
+html[data-unico="true"] #root {
+  background: transparent;
+}
+
+html[data-unico="true"] body {
+  background: transparent;
+
+  --color-bg: rgba(13, 13, 20, 0.94);
+  --color-text: #ffffff;
+  --color-surface: #16161f;
+}
+
+html[data-unico="true"] .calendar-surface {
+  background-color: rgba(22, 22, 31, 0.70);
+}
