@@ -25,4 +25,16 @@ export function enableDesktopAuth() {
 
     return { uid: result.user.uid };
   };
+
+    window.uniDesktopGetPlannerToken = async () => {
+    await auth.authStateReady();
+
+    const user = auth.currentUser;
+
+    if (!user) {
+      throw new Error("PLANNER_NOT_SIGNED_IN");
+    }
+
+    return user.getIdToken();
+  };
 }
