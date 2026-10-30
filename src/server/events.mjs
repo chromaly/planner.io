@@ -34,11 +34,27 @@ export async function readEventPage(token, uid, pageToken) {
   return {
     events: (data.documents ?? []).map((document) => {
       const fields = document.fields ?? {};
+      const recurrenceFields =
+        fields.recurrence?.mapValue?.fields ?? {};
+
+      const recurrence = {
+        type: recurrenceFields.type?.stringValue ?? "never",
+        days: (
+          recurrenceFields.days?.arrayValue?.values ?? []
+        ).map((day) => day.stringValue),
+        dayOfMonth: Number(
+          recurrenceFields.dayOfMonth?.integerValue ??
+          recurrenceFields.dayOfMonth?.doubleValue ??
+          0
+        ),
+      };
 
       return {
         id: document.name.split("/").at(-1),
         name: fields.name?.stringValue ?? "",
         startTime: fields.startTime?.timestampValue ?? null,
+        recurrence,
+        allDay: fields.allDay?.booleanValue ?? false,
         duration: Number(
           fields.duration?.integerValue ??
           fields.duration?.doubleValue ??
