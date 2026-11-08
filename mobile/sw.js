@@ -32,9 +32,12 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(
     self.registration.showNotification(title, {
-      body,
-      data: { url: target.href },
-    }),
+        body,
+        silent: false,
+        tag: typeof payload.tag === "string" ? payload.tag : undefined,
+        renotify: false,
+        data: { url: target.href },
+    })
   );
 });
 
