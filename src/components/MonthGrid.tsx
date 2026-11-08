@@ -12,6 +12,7 @@ type MonthGridProps = {
   deadlines: Deadline[]
   onDayClick: (day: Date) => void
   onDeadlineClick: (deadline: Deadline) => void
+  onEventClick?: (event: Event, day: Date) => void
 }
 
 function getMonthGridDays(monthDate: Date): Date[] {
@@ -37,6 +38,7 @@ export function MonthGrid({
   deadlines,
   onDayClick,
   onDeadlineClick,
+  onEventClick,
 }: MonthGridProps) {
   const { groups } = useGroups()
 
@@ -122,8 +124,18 @@ export function MonthGrid({
                       const group = getGroup(event, groups)
 
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={`event-${event.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+
+                            if (onEventClick) {
+                              onEventClick(event, day);
+                            } else {
+                              onDayClick(day);
+                            }
+                          }}
                           className="
                             relative
                             text-[10px]
@@ -141,6 +153,7 @@ export function MonthGrid({
                             hover:-rotate-2
                             active:scale-90
                             active:rotate-1
+                            w-full text-left cursor-pointer
                           "
                         >
                           <div className="absolute inset-0">
@@ -154,7 +167,7 @@ export function MonthGrid({
                           <span className="relative z-10">
                             {event.name}
                           </span>
-                        </div>
+                        </button>
                       )
                     }
 

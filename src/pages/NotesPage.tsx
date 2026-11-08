@@ -5,7 +5,8 @@ type NotesPageProps = {
   notes: DailyNote[]
   saveNote: (
     date: string,
-    entries: NoteEntry[]
+    entries: NoteEntry[],
+    baseEntries?: NoteEntry[]
   ) => Promise<void>
   deleteNote: (date: string) => Promise<void>
   sortNotesByTopic: () => Promise<void>
@@ -28,6 +29,9 @@ export function NotesPage({
   const saveTimeouts = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({})
+
+  const draftBaseByDate = useRef<Record<string, NoteEntry[]>>({})
+  const draftVersions = useRef<Record<string, number>>({})
 
   const todayDate = getTodayDate()
   
@@ -54,6 +58,11 @@ export function NotesPage({
   
 
   function handleChange(date: string, content: string) {
+    if (!draftBaseByDate.current[date]) {
+      draftBaseByDate.current[date] = (notes.find(note => note.date === date)?.entries ?? [])
+        .map(entry => ({ ...entry }))
+    }
+    draftVersions.current[date] = (draftVersions.current[date] ?? 0) + 1
     setDraftsByDate((current) => ({
       ...current,
       [date]: content,
@@ -66,7 +75,10 @@ export function NotesPage({
     }
 
     saveTimeouts.current[date] = setTimeout(() => {
-      void handleSave(date, content)
+      void handleSave(date, content).catch(error => {
+        console.error("Could not save note:", error)
+        window.alert(error instanceof Error ? error.message : "Could not save note. Your draft has been kept.")
+      })
     }, 1500)
   }
 
@@ -82,22 +94,17 @@ export function NotesPage({
         }
     }
   async function handleSave(date: string, content: string) {
-    console.log("SAVING NOTE:", date, content)
+    const version = draftVersions.current[date]
     const lines = content
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
 
-    if (lines.length === 0) {
-      await deleteNote(date)
-      return
-    }
-
     const existingNote = notes.find(
       (note) => note.date === date
     )
 
-    const existingEntries = existingNote?.entries ?? []
+    const existingEntries = draftBaseByDate.current[date] ?? existingNote?.entries ?? []
 
     const entries: NoteEntry[] = lines.map(
       (line, index) => {
@@ -114,7 +121,14 @@ export function NotesPage({
       }
     )
 
-    await saveNote(date, entries)
+    await saveNote(date, entries, existingEntries)
+    if (draftVersions.current[date] !== version) {
+      // New typing must retain its own baseline, not unseen remote additions.
+      draftBaseByDate.current[date] = entries
+      return
+    }
+    delete draftBaseByDate.current[date]
+    delete draftVersions.current[date]
     setDraftsByDate((current) => {
         const next = { ...current }
         delete next[date]

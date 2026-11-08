@@ -1,36 +1,7 @@
+import { readCollectionPage, readPages } from "./firestore.mjs";
+
 export async function readEventPage(token, uid, pageToken) {
-  const url = new URL(
-    "https://firestore.googleapis.com/v1/" +
-    "projects/planner-io-f4953/databases/(default)/documents/" +
-    `users/${encodeURIComponent(uid)}/events`
-  );
-
-  url.searchParams.set("pageSize", "100");
-
-  if (pageToken) {
-    url.searchParams.set("pageToken", pageToken);
-  }
-
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    signal: AbortSignal.timeout(10000),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    const error = new Error("Could not read planner events.");
-
-    error.code = data.error?.status;
-    error.httpStatus = [400, 401, 403].includes(response.status)
-      ? response.status
-      : 502;
-
-    throw error;
-  }
-
+  const data = await readCollectionPage(token, uid, "events", pageToken);
   return {
     events: (data.documents ?? []).map((document) => {
       const fields = document.fields ?? {};
@@ -60,8 +31,15 @@ export async function readEventPage(token, uid, pageToken) {
           fields.duration?.doubleValue ??
           0
         ),
+        importance: fields.importance?.stringValue ?? "somewhat",
+        notes: fields.notes?.stringValue ?? "",
+        groupId: fields.groupId?.stringValue ?? null,
       };
     }),
-    nextPageToken: data.nextPageToken ?? null,
+    nextPageToken: data.nextPageToken,
   };
+}
+
+export function readAllEvents(token, uid, readPage = readEventPage) {
+  return readPages(pageToken => readPage(token, uid, pageToken), "events");
 }

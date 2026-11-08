@@ -1,7 +1,8 @@
+import { mergeNoteEntries } from "../utils/mergeNoteEntries"
 import {
   collection,
   doc,
-  setDoc,
+  runTransaction,
   Timestamp,
   onSnapshot,
   deleteDoc,
@@ -45,25 +46,31 @@ export function subscribeToNotes(
 export async function saveDailyNote(
   userId: string,
   date: string,
-  entries: NoteEntry[]
+  entries: NoteEntry[],
+  baseEntries: NoteEntry[]
 ): Promise<void> {
-  const noteRef = doc(
-    db,
-    "users",
-    userId,
-    "notes",
-    date
-  )
+  const noteRef = doc(db, "users", userId, "notes", date)
 
-  await setDoc(noteRef, {
-    date,
-    entries: entries.map((entry) => ({
+  await runTransaction(db, async transaction => {
+    const snapshot = await transaction.get(noteRef)
+    const current = snapshot.exists() ? snapshot.data() : null
+    const remote: NoteEntry[] = (current?.entries ?? []).map((entry: any) => ({
       id: entry.id,
       content: entry.content,
-      createdAt: Timestamp.fromDate(entry.createdAt),
-      topic: entry.topic,
-    })),
-    updatedAt: Timestamp.fromDate(new Date()),
+      createdAt: entry.createdAt.toDate(),
+      topic: entry.topic ?? null,
+    }))
+    const merged = mergeNoteEntries(baseEntries, entries, remote)
+    transaction.set(noteRef, {
+      date,
+      entries: merged.map(entry => ({
+        id: entry.id,
+        content: entry.content,
+        createdAt: Timestamp.fromDate(entry.createdAt),
+        topic: entry.topic,
+      })),
+      updatedAt: Timestamp.fromDate(new Date()),
+    }, { merge: true })
   })
 }
 

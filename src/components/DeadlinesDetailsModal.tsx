@@ -5,8 +5,9 @@ import { getGroup } from "../services/groups"
 type DeadlineDetailsModalProps = {
   deadline: Deadline
   onClose: () => void
-  onEdit: () => void
-  onDelete: () => void
+  onEdit?: () => void
+  onDelete?: () => void
+  onOpenCalendar?: () => void
 }
 
 export function DeadlineDetailsModal({
@@ -14,6 +15,7 @@ export function DeadlineDetailsModal({
   onClose,
   onEdit,
   onDelete,
+  onOpenCalendar,
 }: DeadlineDetailsModalProps) {
   const { groups } = useGroups()
 
@@ -25,7 +27,7 @@ export function DeadlineDetailsModal({
       onClick={onClose}
     >
       <div
-        className="bg-surface border border-accent-2/40 rounded-xl p-6 w-96 max-h-[85vh] overflow-y-auto"
+        className="bg-surface border border-accent-2/40 rounded-xl p-6 w-[calc(100%_-_2rem)] max-w-96 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2
@@ -75,9 +77,10 @@ export function DeadlineDetailsModal({
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={onEdit}
+            hidden={!onEdit}
             className="bg-accent-2 text-text px-2 py-1.5 rounded-lg text-sm transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
           >
             Edit Deadline
@@ -85,11 +88,20 @@ export function DeadlineDetailsModal({
 
           <button
             onClick={onDelete}
+            hidden={!onDelete}
             className="bg-accent-1 text-text px-2 py-1.5 rounded-lg text-sm transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
           >
             Delete Deadline
           </button>
-
+          {onOpenCalendar && (
+            <button
+              type="button"
+              onClick={onOpenCalendar}
+              className="bg-accent-2 text-white px-3 py-2 rounded-lg text-sm  transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"
+            >
+              Open in Calendar
+            </button>
+          )}
           <button
             onClick={onClose}
             className="bg-gray-300 px-2 py-1.5 rounded-lg text-sm transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 hover:-rotate-2 active:scale-90 active:rotate-1"

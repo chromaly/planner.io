@@ -1,0 +1,10 @@
+{
+  "id": "/planner.io/mobile/",
+  "name": "planner.io",
+  "short_name": "Planner",
+  "start_url": "/planner.io/mobile/",
+  "scope": "/planner.io/mobile/",
+  "display": "standalone",
+  "background_color": "#0d0d14",
+  "theme_color": "#0d0d14"
+}

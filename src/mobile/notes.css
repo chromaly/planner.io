@@ -1,0 +1,108 @@
+/* Heading and view picker */
+
+.mobile-notes-subtitle {
+  margin: 5px 0 24px;
+}
+
+.mobile-notes-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 28px;
+  background: var(--color-surface);
+  border: 1px solid color-mix(
+    in srgb, var(--color-text) 10%, transparent
+  );
+  border-radius: 12px;
+}
+
+.mobile-notes-switcher button {
+  min-height: 44px;
+  padding: 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.mobile-notes-switcher button[aria-pressed="true"] {
+  background: color-mix(
+    in srgb, var(--color-accent-2) 12%, transparent
+  );
+  color: var(--color-accent-2);
+  opacity: 1;
+}
+
+/* Day and topic sections */
+
+.mobile-note-section {
+  margin-bottom: 32px;
+}
+
+.mobile-note-section h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.mobile-note-topic {
+  padding-top: 10px;
+  border-top: 1px solid color-mix(
+    in srgb, var(--color-text) 10%, transparent
+  );
+}
+
+.mobile-notes .mobile-note-topic p {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  opacity: 1;
+}
+
+/* Editable daily notes */
+
+.mobile-note-editor {
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid color-mix(
+    in srgb, var(--color-text) 10%, transparent
+  );
+  border-radius: 14px;
+}
+
+.mobile-note-editor textarea {
+  display: block;
+  width: 100%;
+  min-height: 240px;
+  padding: 16px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.mobile-note-editor:focus-within {
+  border-color: var(--color-accent-2);
+}
+
+.mobile-note-editor textarea:focus {
+  outline: none;
+}
+
+.mobile-note-editor textarea::placeholder {
+  color: var(--color-text);
+  opacity: 0.45;
+}

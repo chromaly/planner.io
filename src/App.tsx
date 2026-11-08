@@ -1,3 +1,4 @@
+import { DesktopModeRouteGuard } from "./components/DesktopModeRouteGuard"
 // @ts-ignore
 import "./index.css"
 
@@ -608,6 +609,7 @@ function App() {
 
   return (
     <BrowserRouter basename="/planner.io/">
+      <DesktopModeRouteGuard />
       <div className="min-h-screen bg-bg text-text font-sans">
         <Header
           user={user}

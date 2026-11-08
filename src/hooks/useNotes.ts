@@ -21,14 +21,16 @@ export function useNotes(userId: string | null) {
 
   async function saveNote(
     date: string,
-    entries: NoteEntry[]
+    entries: NoteEntry[],
+    baseEntries?: NoteEntry[]
   ) {
     if (!userId) return
 
     await saveDailyNote(
       userId,
       date,
-      entries
+      entries,
+      baseEntries ?? notes.find(note => note.date === date)?.entries ?? []
     )
   }
 
@@ -76,7 +78,8 @@ export function useNotes(userId: string | null) {
         saveDailyNote(
             userId,
             note.date,
-            note.entries
+            note.entries,
+            notes.find(original => original.date === note.date)?.entries ?? []
         )
         )
     )
